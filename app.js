@@ -63,19 +63,7 @@ function initStorage() {
   if (storedUsers) {
     state.users = JSON.parse(storedUsers);
   } else {
-    state.users = [
-      { username: 'terra', email: 'terra@example.com', eco_score: 320, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'forest', email: 'forest@example.com', eco_score: 280, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'river', email: 'river@example.com', eco_score: 260, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'sunbeam', email: 'sunbeam@example.com', eco_score: 240, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'bloom', email: 'bloom@example.com', eco_score: 220, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'sage', email: 'sage@example.com', eco_score: 200, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'dawn', email: 'dawn@example.com', eco_score: 180, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'sprout', email: 'sprout@example.com', eco_score: 160, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'meadow', email: 'meadow@example.com', eco_score: 140, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] },
-      { username: 'willow', email: 'willow@example.com', eco_score: 120, onboarding_complete: 1, checkins: [], quizHistory: [], bonusHistory: [] }
-    ];
-    localStorage.setItem('ecolyfeUsers', JSON.stringify(state.users));
+    state.users = [];
   }
 
   state.users = state.users.map(user => ({
