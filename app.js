@@ -763,18 +763,7 @@ async function handleCreatePost() {
 
   showLoading();
 
-  let imageUrl = null;
-  if (pendingImageData) {
-    try {
-      const filename = `posts/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
-      const ref = fbStorage.ref(filename);
-      await ref.putString(pendingImageData, 'data_url');
-      imageUrl = await ref.getDownloadURL();
-    } catch (e) {
-      console.error('Image upload failed', e);
-      alert('Image upload failed. Post will be created without the image.');
-    }
-  }
+  let imageUrl = pendingImageData || null;
 
   const post = {
     username: state.user.username,
@@ -784,7 +773,14 @@ async function handleCreatePost() {
     timestamp: new Date().toISOString()
   };
 
-  await db.ref('posts').push(post);
+  try {
+    await db.ref('posts').push(post);
+  } catch (err) {
+    console.error("Database error:", err);
+    alert("Failed to save post. Please check your connection.");
+    hideLoading();
+    return;
+  }
 
   if (earnedPoints) {
     state.user.eco_score += 5;
