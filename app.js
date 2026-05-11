@@ -86,15 +86,15 @@ function checkAchievements() {
   const today = new Date().toISOString().slice(0, 10);
   const sortedUsers = state.users.slice().sort((a, b) => b.eco_score - a.eco_score);
   const isTop1 = sortedUsers[0] && sortedUsers[0].username === state.user.username;
-  
+
   if (isTop1) {
     if (state.user.lastTop1Date !== today) {
       if (state.user.lastTop1Date) {
         const lastDate = new Date(state.user.lastTop1Date);
         const currentDate = new Date(today);
         const diffTime = Math.abs(currentDate - lastDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         if (diffDays === 1) {
           state.user.top1Streak += 1;
         } else if (diffDays > 1) {
@@ -108,11 +108,11 @@ function checkAchievements() {
   } else {
     // If they view dashboard and aren't top 1, their streak ends
     if (state.user.lastTop1Date !== today) {
-        state.user.top1Streak = 0;
-        state.user.lastTop1Date = null;
+      state.user.top1Streak = 0;
+      state.user.lastTop1Date = null;
     }
   }
-  
+
   let newlyUnlocked = [];
   ACHIEVEMENTS.forEach(ach => {
     if (!state.user.achievements.includes(ach.id) && ach.condition(state.user)) {
@@ -120,11 +120,11 @@ function checkAchievements() {
       newlyUnlocked.push(ach);
     }
   });
-  
+
   if (newlyUnlocked.length > 0) {
     saveUsers();
     setTimeout(() => {
-        alert('🏆 Achievement Unlocked!\n\n' + newlyUnlocked.map(a => `${a.icon} ${a.title}`).join('\n'));
+      alert('🏆 Achievement Unlocked!\n\n' + newlyUnlocked.map(a => `${a.icon} ${a.title}`).join('\n'));
     }, 100);
   }
 }
@@ -290,7 +290,7 @@ function calculateBaselineScore(answers) {
 
 function renderDashboard() {
   checkAchievements();
-  
+
   setStatus(`Welcome back, ${state.user.username}! Your Eco Score is ${state.user.eco_score}.`);
   dashboardPanel.innerHTML = `
     <div class="dashboard-header">
@@ -330,10 +330,10 @@ function renderDashboard() {
 
 function renderAchievementsPanel() {
   const panel = document.getElementById('achievements-panel');
-  
+
   // Show base achievements and up to 1 next locked streak achievement
   let displayAchievements = ACHIEVEMENTS.filter(a => !a.id.startsWith('streak_') || state.user.achievements.includes(a.id));
-  
+
   // Find next locked streak to preview
   const nextStreak = ACHIEVEMENTS.find(a => a.id.startsWith('streak_') && !state.user.achievements.includes(a.id));
   if (nextStreak) {
@@ -345,8 +345,8 @@ function renderAchievementsPanel() {
     <p>Unlock badges by building eco habits and dominating the leaderboard.<br><small>Current Top 1 Streak: <strong>${state.user.top1Streak} days</strong></small></p>
     <div class="achievement-grid">
       ${displayAchievements.map(ach => {
-        const unlocked = state.user.achievements.includes(ach.id);
-        return `
+    const unlocked = state.user.achievements.includes(ach.id);
+    return `
           <div class="achievement-badge ${unlocked ? 'unlocked' : 'locked'}">
             <div class="achievement-icon">${ach.icon}</div>
             <div class="achievement-info">
@@ -355,7 +355,7 @@ function renderAchievementsPanel() {
             </div>
           </div>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 }
@@ -368,8 +368,8 @@ function renderBonusPanel() {
     <p>Complete extra eco tasks for bonus points today.</p>
     <div class="bonus-grid">
       ${state.bonusActions.map(action => {
-        const done = state.user.bonusHistory.some(record => record.date === today && record.actionId === action.id);
-        return `
+    const done = state.user.bonusHistory.some(record => record.date === today && record.actionId === action.id);
+    return `
           <div class="bonus-item">
             <div>
               <h3>${action.title}</h3>
@@ -383,7 +383,7 @@ function renderBonusPanel() {
             </div>
           </div>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
   bonusPanel.querySelectorAll('button[data-action-id]').forEach(button => {
@@ -503,17 +503,17 @@ function loadLeaderboard() {
     <p>Top 10 EcoLyfe champions by Eco Score.</p>
     <div class="leaderboard">
       ${state.users
-        .slice()
-        .sort((a, b) => b.eco_score - a.eco_score)
-        .slice(0, 10)
-        .map((entry, index) => `
+      .slice()
+      .sort((a, b) => b.eco_score - a.eco_score)
+      .slice(0, 10)
+      .map((entry, index) => `
           <div class="leaderboard-row">
             <span class="leaderboard-rank">${index + 1}</span>
             <span>${entry.username}</span>
             <strong>${entry.eco_score}</strong>
           </div>
         `)
-        .join('')}
+      .join('')}
     </div>
   `;
   leaderboardPanel.hidden = false;
@@ -684,16 +684,42 @@ function renderFeedPanel() {
   document.getElementById('post-image').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Image is too large. Please choose an image under 2MB.');
-      e.target.value = '';
-      return;
-    }
+    
+    // Read and compress image
     const reader = new FileReader();
     reader.onload = (ev) => {
-      pendingImageData = ev.target.result;
-      document.getElementById('image-preview').src = pendingImageData;
-      document.getElementById('image-preview-container').classList.add('active');
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress to tiny JPEG
+        pendingImageData = canvas.toDataURL('image/jpeg', 0.7);
+        
+        document.getElementById('image-preview').src = pendingImageData;
+        document.getElementById('image-preview-container').classList.add('active');
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
@@ -834,20 +860,20 @@ function handleCommentPost(postId, text) {
 
 async function init() {
   showLoading();
-  
+
   // Real-time listeners
   db.ref('users').on('value', (snap) => {
     const arr = [];
     snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
     state.users = arr;
-    
+
     if (state.user) {
       const updated = arr.find(u => u.username === state.user.username);
       if (updated) {
         state.user = updated;
       }
     }
-    
+
     if (!leaderboardPanel.hidden || !dashboardPanel.hidden) {
       loadLeaderboard();
       const scoreBadge = document.querySelector('.score-badge');
@@ -879,8 +905,8 @@ async function init() {
   if (savedUser) {
     let u = state.users.find(entry => entry.username === savedUser);
     if (!u) {
-       u = { username: savedUser, email: '', eco_score: 0, onboarding_complete: 0, checkins: [], quizHistory: [], bonusHistory: [], achievements: [], top1Streak: 0, lastTop1Date: null };
-       await saveUserToFirebase(u);
+      u = { username: savedUser, email: '', eco_score: 0, onboarding_complete: 0, checkins: [], quizHistory: [], bonusHistory: [], achievements: [], top1Streak: 0, lastTop1Date: null };
+      await saveUserToFirebase(u);
     }
     state.user = u;
     if (u.onboarding_complete) {
@@ -891,7 +917,7 @@ async function init() {
   } else {
     renderLogin();
   }
-  
+
   hideLoading();
 }
 
