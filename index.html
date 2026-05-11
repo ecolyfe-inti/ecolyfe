@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoLyfe</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">EcoLyfe</p>
+        <h1>Track your eco habits and build a greener lifestyle.</h1>
+        <p class="hero-copy">Daily check-ins, baseline score survey, and a friendly leaderboard to keep your eco journey
+          moving forward.</p>
+      </div>
+      <div id="status-bar" class="status-bar"></div>
+    </header>
+
+    <main class="layout">
+      <section class="panel" id="login-panel"></section>
+      <section class="panel" id="survey-panel" hidden></section>
+      <section class="panel" id="dashboard-panel" hidden></section>
+      <section class="panel" id="leaderboard-panel" hidden></section>
+      <section class="panel" id="feed-panel" hidden></section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
