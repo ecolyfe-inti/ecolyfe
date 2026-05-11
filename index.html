@@ -12,6 +12,11 @@
 </head>
 
 <body>
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p>Loading EcoLyfe...</p>
+  </div>
+
   <div class="app-shell">
     <header class="hero">
       <div>
@@ -32,6 +37,10 @@
     </main>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <script src="firebase-setup.js"></script>
   <script src="app.js"></script>
 </body>
 

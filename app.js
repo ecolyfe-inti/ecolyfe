@@ -58,35 +58,10 @@ function hasAnsweredQuizToday() {
   return state.user.quizHistory.some(record => record.date === today);
 }
 
-function initStorage() {
-  const storedUsers = localStorage.getItem('ecolyfeUsers');
-  if (storedUsers) {
-    state.users = JSON.parse(storedUsers);
-  } else {
-    state.users = [];
-  }
-
-  state.users = state.users.map(user => ({
-    ...user,
-    checkins: user.checkins || [],
-    quizHistory: user.quizHistory || [],
-    bonusHistory: user.bonusHistory || [],
-    achievements: user.achievements || [],
-    top1Streak: user.top1Streak || 0,
-    lastTop1Date: user.lastTop1Date || null
-  }));
-
-  // Load posts
-  const storedPosts = localStorage.getItem('ecolyfePosts');
-  state.posts = storedPosts ? JSON.parse(storedPosts) : [];
-}
-
 function saveUsers() {
-  localStorage.setItem('ecolyfeUsers', JSON.stringify(state.users));
-}
-
-function savePosts() {
-  localStorage.setItem('ecolyfePosts', JSON.stringify(state.posts));
+  if (state.user) {
+    saveUserToFirebase(state.user);
+  }
 }
 
 const ACHIEVEMENTS = [
@@ -174,16 +149,17 @@ function renderLogin() {
   document.getElementById('start-button').addEventListener('click', handleLogin);
 }
 
-function handleLogin() {
+async function handleLogin() {
   const username = document.getElementById('username').value.trim().toLowerCase();
   const email = document.getElementById('email').value.trim();
   if (!username) return alert('Please enter a username.');
 
+  showLoading();
   let user = state.users.find(entry => entry.username === username);
   if (!user) {
     user = { username, email, eco_score: 0, onboarding_complete: 0, checkins: [], quizHistory: [], bonusHistory: [], achievements: [], top1Streak: 0, lastTop1Date: null };
     state.users.push(user);
-    saveUsers();
+    await saveUserToFirebase(user);
   }
 
   state.user = user;
@@ -193,6 +169,7 @@ function handleLogin() {
   } else {
     renderSurvey();
   }
+  hideLoading();
 }
 
 function loadUserData(username) {
@@ -776,7 +753,7 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
-function handleCreatePost() {
+async function handleCreatePost() {
   const text = document.getElementById('post-text').value.trim();
   if (!text) return alert('Please write something before posting.');
   if (text.length > 1000) return alert('Post text is too long (max 1000 characters).');
@@ -784,19 +761,30 @@ function handleCreatePost() {
   const category = document.getElementById('post-category').value;
   const earnedPoints = !hasPostedToday();
 
+  showLoading();
+
+  let imageUrl = null;
+  if (pendingImageData) {
+    try {
+      const filename = `posts/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
+      const ref = fbStorage.ref(filename);
+      await ref.putString(pendingImageData, 'data_url');
+      imageUrl = await ref.getDownloadURL();
+    } catch (e) {
+      console.error('Image upload failed', e);
+      alert('Image upload failed. Post will be created without the image.');
+    }
+  }
+
   const post = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     username: state.user.username,
     text,
     category,
-    imageData: pendingImageData || null,
-    timestamp: new Date().toISOString(),
-    likes: [],
-    comments: []
+    imageData: imageUrl,
+    timestamp: new Date().toISOString()
   };
 
-  state.posts.push(post);
-  savePosts();
+  await db.ref('posts').push(post);
 
   if (earnedPoints) {
     state.user.eco_score += 5;
@@ -804,7 +792,8 @@ function handleCreatePost() {
     showPointsToast(5);
   }
 
-  renderFeedPanel();
+  pendingImageData = null;
+  hideLoading();
 }
 
 function handleLikePost(postId) {
@@ -813,12 +802,10 @@ function handleLikePost(postId) {
 
   const idx = post.likes.indexOf(state.user.username);
   if (idx === -1) {
-    post.likes.push(state.user.username);
+    db.ref(`posts/${postId}/likes/${state.user.username}`).set(true);
   } else {
-    post.likes.splice(idx, 1);
+    db.ref(`posts/${postId}/likes/${state.user.username}`).remove();
   }
-  savePosts();
-  renderFeedPanel();
 }
 
 function handleDeletePost(postId) {
@@ -826,40 +813,90 @@ function handleDeletePost(postId) {
   if (!post || post.username !== state.user.username) return;
   if (!confirm('Delete this post?')) return;
 
-  state.posts = state.posts.filter(p => p.id !== postId);
-  savePosts();
-  renderFeedPanel();
+  db.ref(`posts/${postId}`).remove();
 }
 
 function handleCommentPost(postId, text) {
   const post = state.posts.find(p => p.id === postId);
   if (!post) return;
 
-  post.comments.push({
+  const newCommentRef = db.ref(`posts/${postId}/comments`).push();
+  newCommentRef.set({
     username: state.user.username,
     text,
     timestamp: new Date().toISOString()
   });
-  savePosts();
-  renderFeedPanel();
 
   // Re-open the comment section after re-render
   setTimeout(() => {
     const commentsDiv = document.getElementById(`comments-${postId}`);
     if (commentsDiv) commentsDiv.style.display = 'block';
-  }, 50);
+  }, 500);
 }
 
 /* ─── Init ─── */
 
-function init() {
-  initStorage();
+async function init() {
+  showLoading();
+  
+  // Real-time listeners
+  db.ref('users').on('value', (snap) => {
+    const arr = [];
+    snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
+    state.users = arr;
+    
+    if (state.user) {
+      const updated = arr.find(u => u.username === state.user.username);
+      if (updated) {
+        state.user = updated;
+      }
+    }
+    
+    if (!leaderboardPanel.hidden || !dashboardPanel.hidden) {
+      loadLeaderboard();
+      const scoreBadge = document.querySelector('.score-badge');
+      if (scoreBadge && state.user) {
+        scoreBadge.textContent = `Eco Score: ${state.user.eco_score}`;
+      }
+    }
+  });
+
+  db.ref('posts').on('value', (snap) => {
+    const arr = [];
+    snap.forEach(child => {
+      const p = child.val();
+      p.id = child.key;
+      p.likes = p.likes ? Object.keys(p.likes) : [];
+      p.comments = p.comments ? Object.values(p.comments) : [];
+      arr.push(p);
+    });
+    state.posts = arr;
+    if (!feedPanel.hidden) {
+      renderFeedPanel();
+    }
+  });
+
+  await fetchAllUsers();
+  await fetchAllPosts();
+
   const savedUser = localStorage.getItem('ecolyfeUser');
   if (savedUser) {
-    loadUserData(savedUser);
+    let u = state.users.find(entry => entry.username === savedUser);
+    if (!u) {
+       u = { username: savedUser, email: '', eco_score: 0, onboarding_complete: 0, checkins: [], quizHistory: [], bonusHistory: [], achievements: [], top1Streak: 0, lastTop1Date: null };
+       await saveUserToFirebase(u);
+    }
+    state.user = u;
+    if (u.onboarding_complete) {
+      renderDashboard();
+    } else {
+      renderSurvey();
+    }
   } else {
     renderLogin();
   }
+  
+  hideLoading();
 }
 
 init();
