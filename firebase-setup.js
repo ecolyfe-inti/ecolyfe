@@ -24,6 +24,7 @@ function normalizeUser(username, data) {
   return {
     username,
     email: data.email || '',
+    password: data.password || '',
     eco_score: data.eco_score || 0,
     onboarding_complete: data.onboarding_complete || 0,
     checkins: toArray(data.checkins),
@@ -31,7 +32,9 @@ function normalizeUser(username, data) {
     bonusHistory: toArray(data.bonusHistory),
     achievements: toArray(data.achievements),
     top1Streak: data.top1Streak || 0,
-    lastTop1Date: data.lastTop1Date || null
+    lastTop1Date: data.lastTop1Date || null,
+    loginStreak: data.loginStreak || 0,
+    lastLoginDate: data.lastLoginDate || null
   };
 }
 

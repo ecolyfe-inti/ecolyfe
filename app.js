@@ -68,7 +68,10 @@ const ACHIEVEMENTS = [
   { id: 'first_steps', title: 'First Steps', description: 'Complete your first daily check-in.', icon: '🌱', condition: (user) => user.checkins.length >= 1 },
   { id: 'quiz_master', title: 'Quiz Master', description: 'Answer 5 quizzes correctly.', icon: '🧠', condition: (user) => user.quizHistory.filter(q => q.correct).length >= 5 },
   { id: 'bonus_hunter', title: 'Bonus Hunter', description: 'Complete 3 bonus actions.', icon: '🎁', condition: (user) => user.bonusHistory.length >= 3 },
-  { id: 'top_dog', title: 'Top Dog', description: 'Reach #1 on the leaderboard.', icon: '👑', condition: (user) => user.top1Streak >= 1 }
+  { id: 'top_dog', title: 'Top Dog', description: 'Reach #1 on the leaderboard.', icon: '👑', condition: (user) => user.top1Streak >= 1 },
+  { id: 'login_streak_3', title: 'Consistent Eco', description: 'Log in for 3 consecutive days.', icon: '📅', condition: (user) => user.loginStreak >= 3 },
+  { id: 'login_streak_7', title: 'Eco Week', description: 'Log in for 7 consecutive days.', icon: '📆', condition: (user) => user.loginStreak >= 7 },
+  { id: 'login_streak_30', title: 'Eco Month', description: 'Log in for 30 consecutive days.', icon: '🗓️', condition: (user) => user.loginStreak >= 30 }
 ];
 
 // Continuous leaderboard streak milestones up to 500
@@ -129,38 +132,92 @@ function checkAchievements() {
   }
 }
 
-function renderLogin() {
-  setStatus('Begin with your EcoLyfe journey.');
+function renderLogin(isRegister = false) {
+  setStatus(isRegister ? 'Create your EcoLyfe account.' : 'Welcome back to EcoLyfe.');
   loginPanel.innerHTML = `
-    <h2>Welcome to EcoLyfe</h2>
-    <p>Create a username and answer a quick baseline survey to start earning Eco Score points.</p>
+    <h2>${isRegister ? 'Create Account' : 'Welcome to EcoLyfe'}</h2>
+    <p>${isRegister ? 'Join us to start earning Eco Score points.' : 'Log in to continue your eco journey.'}</p>
     <div class="form-group">
       <label for="username">Username</label>
       <input id="username" placeholder="e.g. greenjay" />
     </div>
     <div class="form-group">
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Your password" />
+    </div>
+    ${isRegister ? `
+    <div class="form-group">
       <label for="email">Email (optional)</label>
       <input id="email" placeholder="you@example.com" />
     </div>
-    <button id="start-button">Start my Eco Journey</button>
-    <p style="margin-top: 14px; color: var(--muted);">If you already have an account, just sign in with the same username.</p>
+    ` : ''}
+    <button id="start-button">${isRegister ? 'Sign Up' : 'Log In'}</button>
+    <p style="margin-top: 14px; color: var(--muted);">
+      ${isRegister 
+        ? 'Already have an account? <a href="#" id="toggle-mode">Log in here</a>' 
+        : 'New here? <a href="#" id="toggle-mode">Create an account</a>'}
+    </p>
   `;
   showPanel(loginPanel);
-  document.getElementById('start-button').addEventListener('click', handleLogin);
+  
+  document.getElementById('start-button').addEventListener('click', () => {
+    if (isRegister) {
+      handleRegister();
+    } else {
+      handleLoginAction();
+    }
+  });
+
+  document.getElementById('toggle-mode').addEventListener('click', (e) => {
+    e.preventDefault();
+    renderLogin(!isRegister);
+  });
 }
 
-async function handleLogin() {
+function updateLoginStreak(user) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (user.lastLoginDate !== today) {
+    if (user.lastLoginDate) {
+      const lastDate = new Date(user.lastLoginDate);
+      const currentDate = new Date(today);
+      const diffTime = Math.abs(currentDate - lastDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) {
+        user.loginStreak += 1;
+      } else if (diffDays > 1) {
+        user.loginStreak = 1;
+      }
+    } else {
+      user.loginStreak = 1;
+    }
+    user.lastLoginDate = today;
+  }
+}
+
+async function handleLoginAction() {
   const username = document.getElementById('username').value.trim().toLowerCase();
-  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
   if (!username) return alert('Please enter a username.');
+  if (!password) return alert('Please enter a password.');
 
   showLoading();
   let user = state.users.find(entry => entry.username === username);
   if (!user) {
-    user = { username, email, eco_score: 0, onboarding_complete: 0, checkins: [], quizHistory: [], bonusHistory: [], achievements: [], top1Streak: 0, lastTop1Date: null };
-    state.users.push(user);
-    await saveUserToFirebase(user);
+    hideLoading();
+    return alert('Account not found. Please create an account.');
   }
+
+  if (user.password && user.password !== password) {
+    hideLoading();
+    return alert('Incorrect password.');
+  }
+  if (!user.password) {
+    user.password = password;
+  }
+  
+  updateLoginStreak(user);
+  await saveUserToFirebase(user);
 
   state.user = user;
   localStorage.setItem('ecolyfeUser', user.username);
@@ -169,6 +226,45 @@ async function handleLogin() {
   } else {
     renderSurvey();
   }
+  hideLoading();
+}
+
+async function handleRegister() {
+  const username = document.getElementById('username').value.trim().toLowerCase();
+  const password = document.getElementById('password').value;
+  const email = document.getElementById('email').value.trim();
+  
+  if (!username) return alert('Please enter a username.');
+  if (!password) return alert('Please enter a password.');
+
+  showLoading();
+  let user = state.users.find(entry => entry.username === username);
+  if (user) {
+    hideLoading();
+    return alert('Username already exists. Please choose another or log in.');
+  }
+
+  user = { 
+    username, 
+    password, 
+    email, 
+    eco_score: 0, 
+    onboarding_complete: 0, 
+    checkins: [], 
+    quizHistory: [], 
+    bonusHistory: [], 
+    achievements: [], 
+    top1Streak: 0, 
+    lastTop1Date: null, 
+    loginStreak: 1, 
+    lastLoginDate: new Date().toISOString().slice(0, 10) 
+  };
+  state.users.push(user);
+  await saveUserToFirebase(user);
+
+  state.user = user;
+  localStorage.setItem('ecolyfeUser', user.username);
+  renderSurvey();
   hideLoading();
 }
 
@@ -342,7 +438,7 @@ function renderAchievementsPanel() {
 
   panel.innerHTML = `
     <h2>Achievements</h2>
-    <p>Unlock badges by building eco habits and dominating the leaderboard.<br><small>Current Top 1 Streak: <strong>${state.user.top1Streak} days</strong></small></p>
+    <p>Unlock badges by building eco habits and dominating the leaderboard.<br><small>Current Top 1 Streak: <strong>${state.user.top1Streak} days</strong> | Current Login Streak: <strong>${state.user.loginStreak} days</strong></small></p>
     <div class="achievement-grid">
       ${displayAchievements.map(ach => {
     const unlocked = state.user.achievements.includes(ach.id);
@@ -902,20 +998,9 @@ async function init() {
   await fetchAllPosts();
 
   const savedUser = localStorage.getItem('ecolyfeUser');
+  renderLogin();
   if (savedUser) {
-    let u = state.users.find(entry => entry.username === savedUser);
-    if (!u) {
-      u = { username: savedUser, email: '', eco_score: 0, onboarding_complete: 0, checkins: [], quizHistory: [], bonusHistory: [], achievements: [], top1Streak: 0, lastTop1Date: null };
-      await saveUserToFirebase(u);
-    }
-    state.user = u;
-    if (u.onboarding_complete) {
-      renderDashboard();
-    } else {
-      renderSurvey();
-    }
-  } else {
-    renderLogin();
+    document.getElementById('username').value = savedUser;
   }
 
   hideLoading();
