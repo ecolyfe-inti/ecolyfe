@@ -3,8 +3,8 @@ const state = {
   prompts: [
     { id: 1, title: 'Reusable shopping bag', description: 'Use a reusable bag for shopping instead of single-use plastic.', category: 'Waste', basePoints: 8, impact: 1.2 },
     { id: 2, title: 'Plant-based meal', description: 'Choose a plant-based meal for dinner.', category: 'Food', basePoints: 12, impact: 1.5 },
-    { id: 3, title: 'Bike or walk', description: 'Bike, walk, or use public transit instead of driving.', category: 'Transport', basePoints: 15, impact: 1.8 },
-    { id: 4, title: 'Drink tap water', description: 'Bring a reusable water bottle and avoid bottled water.', category: 'Waste', basePoints: 6, impact: 1.1 },
+    { id: 3, title: 'Use public transport', description: 'Bike, walk, or use public transit instead of driving.', category: 'Transport', basePoints: 15, impact: 1.8 },
+    { id: 4, title: 'Use reusable water bottle', description: 'Bring a reusable water bottle and avoid bottled water.', category: 'Waste', basePoints: 6, impact: 1.1 },
     { id: 5, title: 'Energy saved', description: 'Turn off lights and unplug devices when not in use.', category: 'Energy', basePoints: 10, impact: 1.3 },
     { id: 6, title: 'Compost', description: 'Compost food scraps instead of throwing them away.', category: 'Waste', basePoints: 11, impact: 1.4 },
     { id: 7, title: 'Reusable mug', description: 'Use a reusable coffee cup for your drink.', category: 'Waste', basePoints: 5, impact: 1.0 },
