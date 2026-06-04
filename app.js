@@ -30,6 +30,7 @@ const surveyPanel = document.getElementById('survey-panel');
 const dashboardPanel = document.getElementById('dashboard-panel');
 const leaderboardPanel = document.getElementById('leaderboard-panel');
 const feedPanel = document.getElementById('feed-panel');
+const analyticsPanel = document.getElementById('analytics-panel');
 const statusBar = document.getElementById('status-bar');
 
 function setStatus(message) {
@@ -37,7 +38,7 @@ function setStatus(message) {
 }
 
 function showPanel(panel) {
-  [loginPanel, surveyPanel, dashboardPanel, leaderboardPanel, feedPanel].forEach(node => {
+  [loginPanel, surveyPanel, dashboardPanel, leaderboardPanel, feedPanel, analyticsPanel].forEach(node => {
     node.hidden = node !== panel;
   });
 }
@@ -221,10 +222,10 @@ async function handleLoginAction() {
 
   state.user = user;
   localStorage.setItem('ecolyfeUser', user.username);
-  if (user.onboarding_complete) {
+  if (user.assessmentDone) {
     renderDashboard();
   } else {
-    renderSurvey();
+    renderDemographics();
   }
   hideLoading();
 }
@@ -264,7 +265,7 @@ async function handleRegister() {
 
   state.user = user;
   localStorage.setItem('ecolyfeUser', user.username);
-  renderSurvey();
+  renderDemographics();
   hideLoading();
 }
 
@@ -276,112 +277,407 @@ function loadUserData(username) {
     return;
   }
   state.user = user;
-  if (user.onboarding_complete) {
+  if (user.assessmentDone) {
     renderDashboard();
   } else {
-    renderSurvey();
+    renderDemographics();
   }
 }
 
-function renderSurvey() {
-  setStatus('Complete the baseline survey to unlock your Eco Score.');
+// ═══ Assessment Engine ═══
+
+let _assessAnswers = {};
+let _assessDemographics = {};
+let _assessCatIdx = 0;
+
+const ASSESSMENT = {
+  categories: [
+    {
+      id: 'energy', name: 'Energy Conservation', icon: '⚡', color: '#f59e0b', weight: 0.20, maxRaw: 26,
+      questions: [
+        { id: 'e0', text: 'How often do you turn off lights when leaving a room?', weight: 1.5,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'e1', text: 'What do you usually do with plugged-in devices and chargers when leaving your room?', weight: 1.5,
+          options: ['Leave everything switched on', 'Leave chargers in, turn off screens', 'Unplug some chargers and devices', 'Unplug most things', 'Unplug and switch off everything'] },
+        { id: 'e2', text: 'How often do you use air conditioning when the room is already cool or unoccupied?', weight: 1.5,
+          options: ['I leave it on all the time', 'Often', 'Sometimes', 'Rarely', 'Never — I switch it off when not needed'] },
+        { id: 'e3', text: 'Rate your overall effort to reduce electricity use in your daily routine. (1 = No effort, 5 = Very consistent)', weight: 1.0,
+          options: ['1 — No effort at all', '2', '3 — Sometimes try', '4', '5 — Very consistent'] },
+        { id: 'e4', text: 'Which best describes your device and screen usage before going to sleep?', weight: 1.0,
+          options: ['Keep everything on overnight', 'Turn off most things eventually', 'Power down devices but leave lights on', 'Switch off everything before sleeping', 'Unplug and power off everything completely'] }
+      ]
+    },
+    {
+      id: 'transport', name: 'Transportation Habits', icon: '🚌', color: '#3b82f6', weight: 0.25, maxRaw: 26,
+      questions: [
+        { id: 't0', text: 'How do you most often travel to campus or your place of study?', weight: 1.5,
+          options: ['Private car (alone)', 'Motorcycle (alone)', 'Carpool or rideshare', 'Public bus or train', 'Walk or cycle'] },
+        { id: 't1', text: 'On average, how many days per week do you use a private vehicle (car or motorcycle)?', weight: 1.5,
+          options: ['Every day (5–7 days)', 'Most days (3–4 days)', 'A few days (1–2 days)', 'Rarely', 'Never'] },
+        { id: 't2', text: 'In the past month, how often have you carpooled or shared a ride with others?', weight: 1.5,
+          options: ['Never', 'Once', 'A few times', 'Regularly', 'Almost all my trips'] },
+        { id: 't3', text: 'What is the longest distance you are comfortable walking or cycling rather than taking a vehicle?', weight: 1.0,
+          options: ["I don't walk or cycle anywhere", 'Less than 5 minutes away', '5–10 minutes away', '10–20 minutes away', 'More than 20 minutes away'] },
+        { id: 't4', text: 'How often do you plan and combine errands to reduce the number of journeys you make?', weight: 1.0,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] }
+      ]
+    },
+    {
+      id: 'food', name: 'Sustainable Food Choices', icon: '🥗', color: '#10b981', weight: 0.20, maxRaw: 23,
+      questions: [
+        { id: 'f0', text: 'How often do you choose plant-based meals (vegetarian or vegan options)?', weight: 1.5,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'f1', text: 'How much food do you typically leave uneaten or throw away per meal?', weight: 1.5,
+          options: ['More than half the meal', 'About half', 'A small portion', 'Very little', 'None — I finish everything'] },
+        { id: 'f2', text: 'Do you bring a reusable water bottle or container when going to campus or out?', weight: 1.0,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'f3', text: 'How often do you consider the environmental impact when choosing your food (e.g. less packaging, fewer processed foods)?', weight: 1.0,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'f4', text: 'How often do you eat at fast food chains or order single-use packaged takeaways?', weight: 0.75,
+          options: ['Daily', '4–5 times a week', '2–3 times a week', 'About once a week', 'Rarely or never'] }
+      ]
+    },
+    {
+      id: 'waste', name: 'Waste Management', icon: '♻️', color: '#8b5cf6', weight: 0.20, maxRaw: 23,
+      questions: [
+        { id: 'w0', text: 'How often do you separate recyclable materials (plastic, paper, cans) from your general waste?', weight: 1.5,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'w1', text: 'When you go grocery or retail shopping, how often do you bring your own reusable bag?', weight: 1.0,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'w2', text: 'How do you typically dispose of old electronics, clothing, or items you no longer need?', weight: 1.5,
+          options: ['Throw them in the general bin', 'Leave them unused at home', 'Donate or sell them occasionally', 'Regularly donate, sell, or recycle', 'Always find a responsible disposal method'] },
+        { id: 'w3', text: 'How often do you buy second-hand, refurbished, or pre-loved items instead of buying new?', weight: 1.0,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'w4', text: 'Do you use reusable items such as cups, straws, or cutlery when eating or drinking on the go?', weight: 0.75,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] }
+      ]
+    },
+    {
+      id: 'water', name: 'Water Conservation', icon: '💧', color: '#06b6d4', weight: 0.15, maxRaw: 24,
+      questions: [
+        { id: 'wa0', text: 'How long is your typical shower?', weight: 1.5,
+          options: ['More than 15 minutes', '10–15 minutes', '7–10 minutes', '5–7 minutes', 'Less than 5 minutes'] },
+        { id: 'wa1', text: 'Do you turn off the tap while brushing your teeth, lathering hands, or shampooing?', weight: 1.5,
+          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'wa2', text: 'How often do you only run the washing machine when it is fully loaded?', weight: 1.0,
+          options: ['Never — I run it regardless of load', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+        { id: 'wa3', text: 'When you notice a dripping or leaking tap, what do you do?', weight: 1.0,
+          options: ['Ignore it', 'Mention it but take no action', 'Try to report it when I remember', 'Report it promptly', 'Fix or report it immediately'] },
+        { id: 'wa4', text: 'Rate how mindful you are of your daily water usage. (1 = Not mindful at all, 5 = Very mindful)', weight: 1.0,
+          options: ['1 — Not mindful at all', '2', '3 — Somewhat mindful', '4', '5 — Very mindful'] }
+      ]
+    }
+  ]
+};
+
+const LEVEL_CONFIG = [
+  { level: 'Eco Beginner',  min: 0,  max: 20,  color: '#ef4444', bg: '#fef2f2', emoji: '🌿' },
+  { level: 'Eco Explorer',  min: 21, max: 40,  color: '#f97316', bg: '#fff7ed', emoji: '🌱' },
+  { level: 'Eco Aware',     min: 41, max: 60,  color: '#eab308', bg: '#fefce8', emoji: '🍃' },
+  { level: 'Eco Advocate',  min: 61, max: 80,  color: '#22c55e', bg: '#f0fdf4', emoji: '🌳' },
+  { level: 'Eco Champion',  min: 81, max: 100, color: '#16a34a', bg: '#dcfce7', emoji: '🏆' }
+];
+
+function getEcoLevel(score) {
+  return LEVEL_CONFIG.find(l => score >= l.min && score <= l.max) || LEVEL_CONFIG[0];
+}
+
+function getEcoLevelDesc(score) {
+  if (score <= 20) return 'You are at the start of your eco journey. Small daily changes can make a big difference!';
+  if (score <= 40) return 'You have begun exploring sustainable habits. Keep building on your progress!';
+  if (score <= 60) return 'You are aware of sustainability and practising it in many areas. Great start!';
+  if (score <= 80) return 'You are an active advocate for sustainable living. Keep inspiring others!';
+  return 'Outstanding! You consistently champion sustainability across all areas of daily life. 🌟';
+}
+
+function calculateAssessmentScores() {
+  const catScores = {};
+  let totalWeighted = 0;
+  ASSESSMENT.categories.forEach(cat => {
+    let raw = 0;
+    cat.questions.forEach(q => {
+      const val = _assessAnswers[q.id];
+      if (val !== undefined) raw += val * q.weight;
+    });
+    catScores[cat.id] = Math.min(100, Math.round((raw / cat.maxRaw) * 100));
+    totalWeighted += catScores[cat.id] * cat.weight;
+  });
+  catScores.overall = Math.min(100, Math.round(totalWeighted));
+  return catScores;
+}
+
+function renderDemographics() {
+  setStatus("Welcome to EcoLyfe! Let's start with your profile.");
+  const isReturning = state.user.checkins && state.user.checkins.length > 0;
   surveyPanel.innerHTML = `
-    <h2>Baseline Eco Survey</h2>
-    <p>Tell us a little about your current habits so we can set your baseline Eco Score.</p>
+    <div class="assessment-intro">
+      <div class="assessment-intro-icon">🌍</div>
+      <h2>${isReturning ? 'New: Eco-Living Assessment' : 'Welcome to EcoLyfe!'}</h2>
+      <p>${isReturning
+        ? "We've upgraded our sustainability assessment. Complete this 25-question evaluation to unlock your detailed Eco Profile and contribute to INTI's campus sustainability insights."
+        : 'Before you start earning Eco Score points, complete a short 25-question sustainability assessment. It takes about 2–3 minutes and helps us understand sustainability habits across INTI.'}
+      </p>
+      <div class="assessment-info-row">
+        <span>📋 25 Questions</span>
+        <span>⏱️ ~2–3 minutes</span>
+        <span>🔒 Anonymous data</span>
+      </div>
+    </div>
+    <h3 style="margin-bottom:16px">Your Profile</h3>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">Used for anonymous sustainability trend analysis only.</p>
     <div class="form-group">
-      <label>How often do you use reusable bags?</label>
-      <select id="q1">
-        <option value="never">Never</option>
-        <option value="rarely">Rarely</option>
-        <option value="sometimes">Sometimes</option>
-        <option value="often">Often</option>
-        <option value="always">Always</option>
+      <label for="demo-programme">Programme</label>
+      <select id="demo-programme">
+        <option value="">Select your programme</option>
+        <option value="DEEI">DEEI</option>
+        <option value="DIT">DIT</option>
+        <option value="Business">Business</option>
+        <option value="Accounting">Accounting</option>
+        <option value="Hospitality">Hospitality</option>
+        <option value="Other">Other</option>
       </select>
     </div>
     <div class="form-group">
-      <label>Do you compost food scraps?</label>
-      <select id="q2">
-        <option value="never">Never</option>
-        <option value="rarely">Rarely</option>
-        <option value="sometimes">Sometimes</option>
-        <option value="often">Often</option>
-        <option value="always">Always</option>
+      <label for="demo-year">Year of Study</label>
+      <select id="demo-year">
+        <option value="">Select your year</option>
+        <option value="Foundation">Foundation</option>
+        <option value="Year 1">Year 1</option>
+        <option value="Year 2">Year 2</option>
+        <option value="Year 3">Year 3</option>
+        <option value="Year 4">Year 4</option>
       </select>
     </div>
     <div class="form-group">
-      <label>How often do you choose public transit or biking over driving?</label>
-      <select id="q3">
-        <option value="never">Never</option>
-        <option value="rarely">Rarely</option>
-        <option value="sometimes">Sometimes</option>
-        <option value="often">Often</option>
-        <option value="always">Always</option>
+      <label for="demo-living">Living Arrangement</label>
+      <select id="demo-living">
+        <option value="">Select your living arrangement</option>
+        <option value="Hostel">Hostel</option>
+        <option value="Rental">Rental House / Apartment</option>
+        <option value="Family Home">Family Home</option>
       </select>
     </div>
-    <div class="form-group">
-      <label>Do you avoid single-use plastics?</label>
-      <select id="q4">
-        <option value="never">Never</option>
-        <option value="rarely">Rarely</option>
-        <option value="sometimes">Sometimes</option>
-        <option value="often">Often</option>
-        <option value="always">Always</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Do you recycle or reuse household packaging?</label>
-      <select id="q5">
-        <option value="never">Never</option>
-        <option value="rarely">Rarely</option>
-        <option value="sometimes">Sometimes</option>
-        <option value="often">Often</option>
-        <option value="always">Always</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Do you use energy-saving habits like LED bulbs or unplugging devices?</label>
-      <select id="q6">
-        <option value="never">Never</option>
-        <option value="rarely">Rarely</option>
-        <option value="sometimes">Sometimes</option>
-        <option value="often">Often</option>
-        <option value="always">Always</option>
-      </select>
-    </div>
-    <button id="survey-submit">Save my baseline score</button>
+    <button id="begin-assessment-btn" style="width:100%;margin-top:8px">Begin Assessment →</button>
   `;
   showPanel(surveyPanel);
-  document.getElementById('survey-submit').addEventListener('click', submitSurvey);
+  _assessAnswers = {};
+  _assessCatIdx = 0;
+  document.getElementById('begin-assessment-btn').addEventListener('click', () => {
+    const programme = document.getElementById('demo-programme').value;
+    const yearOfStudy = document.getElementById('demo-year').value;
+    const livingArrangement = document.getElementById('demo-living').value;
+    if (!programme) return alert('Please select your programme.');
+    if (!yearOfStudy) return alert('Please select your year of study.');
+    if (!livingArrangement) return alert('Please select your living arrangement.');
+    _assessDemographics = { programme, yearOfStudy, livingArrangement };
+    renderAssessment(0);
+  });
 }
 
-function submitSurvey() {
-  const answers = {
-    q1: document.getElementById('q1').value,
-    q2: document.getElementById('q2').value,
-    q3: document.getElementById('q3').value,
-    q4: document.getElementById('q4').value,
-    q5: document.getElementById('q5').value,
-    q6: document.getElementById('q6').value
+function renderAssessment(catIdx) {
+  _assessCatIdx = catIdx;
+  const cat = ASSESSMENT.categories[catIdx];
+  const totalCats = ASSESSMENT.categories.length;
+  const questionOffset = ASSESSMENT.categories.slice(0, catIdx).reduce((s, c) => s + c.questions.length, 0);
+  const totalQs = 25;
+  const progressPct = Math.round((questionOffset / totalQs) * 100);
+  setStatus(`Category ${catIdx + 1} of ${totalCats}: ${cat.name}`);
+  surveyPanel.innerHTML = `
+    <div class="assess-progress-wrap">
+      <div class="assess-cat-steps">
+        ${ASSESSMENT.categories.map((c, i) => `
+          <div class="assess-cat-step ${i < catIdx ? 'done' : i === catIdx ? 'active' : ''}">
+            <div class="assess-cat-step-dot">${c.icon}</div>
+            <div class="assess-cat-step-name">${c.name.split(' ')[0]}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="assess-progress-track">
+        <div class="assess-progress-fill" style="width:${progressPct}%"></div>
+      </div>
+      <div class="assess-progress-label">Questions ${questionOffset + 1}–${questionOffset + cat.questions.length} of ${totalQs}</div>
+    </div>
+    <div class="assess-cat-header" style="border-left:4px solid ${cat.color}">
+      <span class="assess-cat-icon">${cat.icon}</span>
+      <div>
+        <h2 style="margin:0;color:${cat.color}">${cat.name}</h2>
+        <p style="margin:0;color:var(--muted);font-size:0.9rem">Category ${catIdx + 1} of ${totalCats}</p>
+      </div>
+    </div>
+    <div class="assess-questions">
+      ${cat.questions.map((q, qIdx) => {
+        const globalIdx = questionOffset + qIdx + 1;
+        const selected = _assessAnswers[q.id];
+        return `
+          <div class="assess-question-card">
+            <div class="assess-q-badge">Q${globalIdx}</div>
+            <p class="assess-q-text">${q.text}</p>
+            <div class="assess-options">
+              ${q.options.map((opt, oIdx) => `
+                <button class="assess-option${selected === oIdx ? ' selected' : ''}" data-qid="${q.id}" data-score="${oIdx}"
+                  ${selected === oIdx ? `style="border-color:${cat.color};background:${cat.color}18"` : ''}>
+                  <span class="assess-option-dot"></span>
+                  <span>${opt}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="assess-nav">
+      ${catIdx > 0 ? `<button class="assess-back-btn" id="assess-back">← Back</button>` : '<div></div>'}
+      <button id="assess-next" ${cat.questions.some(q => _assessAnswers[q.id] === undefined) ? 'disabled' : ''}>
+        ${catIdx === totalCats - 1 ? '🎉 See My Results' : `Next: ${ASSESSMENT.categories[catIdx + 1].name} →`}
+      </button>
+    </div>
+  `;
+  showPanel(surveyPanel);
+  surveyPanel.querySelectorAll('.assess-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid = btn.dataset.qid;
+      const score = Number(btn.dataset.score);
+      _assessAnswers[qid] = score;
+      surveyPanel.querySelectorAll(`.assess-option[data-qid="${qid}"]`).forEach(b => {
+        b.classList.remove('selected');
+        b.style.borderColor = '';
+        b.style.background = '';
+      });
+      btn.classList.add('selected');
+      btn.style.borderColor = cat.color;
+      btn.style.background = cat.color + '18';
+      const nextBtn = document.getElementById('assess-next');
+      if (nextBtn) nextBtn.disabled = cat.questions.some(q => _assessAnswers[q.id] === undefined);
+    });
+  });
+  document.getElementById('assess-next').addEventListener('click', () => {
+    if (catIdx < totalCats - 1) {
+      renderAssessment(catIdx + 1);
+    } else {
+      renderResults(calculateAssessmentScores());
+    }
+  });
+  if (catIdx > 0) {
+    document.getElementById('assess-back').addEventListener('click', () => renderAssessment(catIdx - 1));
+  }
+}
+
+function renderResults(scores) {
+  setStatus('Your sustainability assessment is complete!');
+  const lvl = getEcoLevel(scores.overall);
+  const cats = ASSESSMENT.categories;
+  const sorted = cats.slice().sort((a, b) => scores[b.id] - scores[a.id]);
+  const strongest = sorted[0];
+  const weakest = sorted[sorted.length - 1];
+  surveyPanel.innerHTML = `
+    <div class="results-hero">
+      <h2>Your Eco Profile 🌿</h2>
+      <p>Here is how you scored across the five sustainability categories.</p>
+    </div>
+    <div class="results-score-card">
+      <div class="results-score-ring">
+        <span class="results-score-num" id="score-counter">0</span>
+        <span class="results-score-denom">/100</span>
+      </div>
+      <div>
+        <div class="results-level-badge" style="background:${lvl.bg};color:${lvl.color};border:2px solid ${lvl.color}40">
+          ${lvl.emoji} ${lvl.level}
+        </div>
+        <p class="results-level-desc">${getEcoLevelDesc(scores.overall)}</p>
+      </div>
+    </div>
+    <div class="results-cat-breakdown">
+      ${cats.map(cat => `
+        <div class="results-cat-row">
+          <div class="results-cat-info">
+            <span class="results-cat-icon">${cat.icon}</span>
+            <span class="results-cat-name">${cat.name}</span>
+          </div>
+          <div class="results-cat-bar-track">
+            <div class="results-cat-bar" data-width="${scores[cat.id]}" style="background:${cat.color};width:0%"></div>
+          </div>
+          <span class="results-cat-pct">${scores[cat.id]}%</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="results-insights-row">
+      <div class="results-insight strength">
+        <div class="results-insight-icon">💪</div>
+        <div>
+          <div class="results-insight-label">Strongest Area</div>
+          <div class="results-insight-val">${strongest.icon} ${strongest.name}</div>
+        </div>
+      </div>
+      <div class="results-insight improve">
+        <div class="results-insight-icon">🎯</div>
+        <div>
+          <div class="results-insight-label">Needs Improvement</div>
+          <div class="results-insight-val">${weakest.icon} ${weakest.name}</div>
+        </div>
+      </div>
+    </div>
+    <div class="results-reflection-box">
+      <h3>Self-Reflection</h3>
+      <p>Which sustainability category do you <em>feel</em> you need the most improvement in?</p>
+      <select id="perceived-weak" style="margin-top:8px">
+        <option value="">Select a category...</option>
+        ${cats.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
+      </select>
+    </div>
+    <button id="complete-assessment" style="width:100%;margin-top:16px;font-size:1.05rem">Start My EcoLyfe Journey 🌱</button>
+  `;
+  showPanel(surveyPanel);
+  let count = 0;
+  const target = scores.overall;
+  const el = document.getElementById('score-counter');
+  const stepV = Math.max(1, Math.ceil(target / 40));
+  const timer = setInterval(() => {
+    count = Math.min(count + stepV, target);
+    el.textContent = count;
+    if (count >= target) clearInterval(timer);
+  }, 30);
+  setTimeout(() => {
+    surveyPanel.querySelectorAll('.results-cat-bar[data-width]').forEach(bar => {
+      bar.style.width = bar.dataset.width + '%';
+    });
+  }, 300);
+  document.getElementById('complete-assessment').addEventListener('click', async () => {
+    const perceivedWeak = document.getElementById('perceived-weak').value;
+    if (!perceivedWeak) return alert('Please select a category for the self-reflection question.');
+    await completeAssessment(scores, perceivedWeak);
+  });
+}
+
+async function completeAssessment(scores, perceivedWeak) {
+  showLoading();
+  const isNewUser = !state.user.onboarding_complete;
+  const record = {
+    userId: state.user.username,
+    timestamp: new Date().toISOString(),
+    programme: _assessDemographics.programme,
+    yearOfStudy: _assessDemographics.yearOfStudy,
+    livingArrangement: _assessDemographics.livingArrangement,
+    overallScore: scores.overall,
+    energyScore: scores.energy,
+    transportScore: scores.transport,
+    foodScore: scores.food,
+    wasteScore: scores.waste,
+    waterScore: scores.water,
+    perceivedWeakCategory: perceivedWeak,
+    answers: { ..._assessAnswers }
   };
-  state.user.eco_score = calculateBaselineScore(answers);
+  await db.ref('assessments').push(record);
+  state.user.assessmentDone = true;
   state.user.onboarding_complete = 1;
-  saveUsers();
+  state.user.programme = _assessDemographics.programme;
+  state.user.yearOfStudy = _assessDemographics.yearOfStudy;
+  state.user.livingArrangement = _assessDemographics.livingArrangement;
+  if (isNewUser) {
+    state.user.eco_score = scores.overall;
+  }
+  await saveUserToFirebase(state.user);
+  hideLoading();
   renderDashboard();
-}
-
-function calculateBaselineScore(answers) {
-  const scoring = {
-    never: 0,
-    rarely: 2,
-    sometimes: 5,
-    often: 8,
-    always: 12
-  };
-  const keys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
-  return 40 + keys.reduce((sum, key) => {
-    const response = answers[key] || 'never';
-    return sum + (scoring[response] ?? 0);
-  }, 0);
 }
 
 function renderDashboard() {
@@ -397,6 +693,7 @@ function renderDashboard() {
         </div>
         <div class="nav-buttons">
           <button class="nav-btn" id="go-feed">📢 Community Feed</button>
+          <button class="nav-btn" id="go-analytics">📊 Analytics</button>
           <button class="nav-btn outline" id="sign-out">Sign out</button>
         </div>
       </div>
@@ -417,6 +714,7 @@ function renderDashboard() {
   document.getElementById('go-feed').addEventListener('click', () => {
     renderFeedPanel();
   });
+  document.getElementById('go-analytics').addEventListener('click', () => renderAnalytics());
   loadPrompts();
   renderBonusPanel();
   renderQuizPanel();
@@ -950,6 +1248,191 @@ function handleCommentPost(postId, text) {
     const commentsDiv = document.getElementById(`comments-${postId}`);
     if (commentsDiv) commentsDiv.style.display = 'block';
   }, 500);
+}
+
+/* ─── Analytics Dashboard ─── */
+
+function renderAnalytics() {
+  setStatus('Campus Sustainability Analytics — real-time insights from INTI students.');
+  analyticsPanel.innerHTML = `
+    <div class="analytics-header">
+      <h2>📊 Campus Analytics</h2>
+      <button class="nav-btn outline" id="back-from-analytics">← Dashboard</button>
+    </div>
+    <div id="analytics-content">
+      <div style="text-align:center;padding:60px 24px">
+        <div class="loading-spinner" style="margin:0 auto 16px"></div>
+        <p style="color:var(--muted)">Loading campus data...</p>
+      </div>
+    </div>
+  `;
+  showPanel(analyticsPanel);
+  document.getElementById('back-from-analytics').addEventListener('click', () => renderDashboard());
+  db.ref('assessments').once('value', snap => {
+    const records = [];
+    snap.forEach(child => records.push(child.val()));
+    renderAnalyticsContent(records);
+  });
+}
+
+function renderAnalyticsContent(records) {
+  const content = document.getElementById('analytics-content');
+  if (!content) return;
+  if (records.length === 0) {
+    content.innerHTML = `<div class="analytics-empty"><div style="font-size:3rem;margin-bottom:12px">📊</div><p>No assessment data yet. Be the first to complete the assessment!</p></div>`;
+    return;
+  }
+  const n = records.length;
+  const cats = ASSESSMENT.categories;
+  const catAvg = {};
+  cats.forEach(c => {
+    const key = c.id + 'Score';
+    catAvg[c.id] = Math.round(records.reduce((s, r) => s + (r[key] || 0), 0) / n);
+  });
+  const avgOverall = Math.round(records.reduce((s, r) => s + (r.overallScore || 0), 0) / n);
+  const sortedByAvg = cats.slice().sort((a, b) => catAvg[b.id] - catAvg[a.id]);
+
+  const levelBuckets = {};
+  LEVEL_CONFIG.forEach(l => { levelBuckets[l.level] = 0; });
+  records.forEach(r => { const lv = getEcoLevel(r.overallScore || 0); levelBuckets[lv.level]++; });
+
+  const programmes = ['DEEI', 'DIT', 'Business', 'Accounting', 'Hospitality', 'Other'];
+  const progData = {};
+  programmes.forEach(p => {
+    const g = records.filter(r => r.programme === p);
+    progData[p] = g.length ? { avg: Math.round(g.reduce((s, r) => s + (r.overallScore || 0), 0) / g.length), count: g.length } : null;
+  });
+
+  const years = ['Foundation', 'Year 1', 'Year 2', 'Year 3', 'Year 4'];
+  const yearData = {};
+  years.forEach(y => {
+    const g = records.filter(r => r.yearOfStudy === y);
+    yearData[y] = g.length ? { avg: Math.round(g.reduce((s, r) => s + (r.overallScore || 0), 0) / g.length), count: g.length } : null;
+  });
+
+  const livings = ['Hostel', 'Rental', 'Family Home'];
+  const livingData = {};
+  livings.forEach(l => {
+    const g = records.filter(r => r.livingArrangement === l);
+    livingData[l] = g.length ? { avg: Math.round(g.reduce((s, r) => s + (r.overallScore || 0), 0) / g.length), count: g.length } : null;
+  });
+
+  const perceivedCounts = { energy: 0, transport: 0, food: 0, waste: 0, water: 0 };
+  records.forEach(r => { if (r.perceivedWeakCategory in perceivedCounts) perceivedCounts[r.perceivedWeakCategory]++; });
+
+  const qData = {};
+  cats.forEach(cat => {
+    cat.questions.forEach(q => {
+      const vals = records.filter(r => r.answers && r.answers[q.id] !== undefined).map(r => r.answers[q.id]);
+      const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+      qData[q.id] = { score: Math.round((avg / 4) * 100), text: q.text, catIcon: cat.icon };
+    });
+  });
+  const qSorted = Object.entries(qData).sort((a, b) => b[1].score - a[1].score);
+  const top3 = qSorted.slice(0, 3);
+  const bottom3 = qSorted.slice(-3).reverse();
+
+  const avgLvl = getEcoLevel(avgOverall);
+
+  const barRow = (label, val, color, count = null) => {
+    if (val === null) return `<div class="analytics-bar-row"><span class="analytics-bar-label">${label}</span><div class="analytics-bar-track"><div class="analytics-bar-fill" style="background:#e5e7eb" data-w="0"></div></div><span class="analytics-bar-pct" style="color:var(--muted)">No data</span></div>`;
+    return `<div class="analytics-bar-row"><span class="analytics-bar-label">${label}</span><div class="analytics-bar-track"><div class="analytics-bar-fill" style="background:${color}" data-w="${val}"></div></div><span class="analytics-bar-pct">${val}%${count !== null ? ` <small>(${count})</small>` : ''}</span></div>`;
+  };
+
+  content.innerHTML = `
+    <div class="analytics-summary-grid">
+      <div class="analytics-stat-card"><div class="analytics-stat-num">${n}</div><div class="analytics-stat-lbl">Assessments Completed</div></div>
+      <div class="analytics-stat-card"><div class="analytics-stat-num" style="color:${avgLvl.color}">${avgOverall}/100</div><div class="analytics-stat-lbl">Average Campus Eco Score</div></div>
+      <div class="analytics-stat-card"><div class="analytics-stat-num">${sortedByAvg[0].icon}</div><div class="analytics-stat-lbl">Strongest: ${sortedByAvg[0].name}</div></div>
+      <div class="analytics-stat-card"><div class="analytics-stat-num">${sortedByAvg[sortedByAvg.length - 1].icon}</div><div class="analytics-stat-lbl">Needs Work: ${sortedByAvg[sortedByAvg.length - 1].name}</div></div>
+    </div>
+
+    <div class="analytics-section">
+      <div class="analytics-section-title">📈 Category Averages</div>
+      ${cats.map(c => barRow(`${c.icon} ${c.name}`, catAvg[c.id], c.color)).join('')}
+    </div>
+
+    <div class="analytics-section">
+      <div class="analytics-section-title">🏅 Sustainability Level Distribution</div>
+      ${LEVEL_CONFIG.map(lc => {
+        const cnt = levelBuckets[lc.level];
+        const pct = Math.round((cnt / n) * 100);
+        return barRow(`${lc.emoji} ${lc.level}`, pct, lc.color, cnt);
+      }).join('')}
+    </div>
+
+    <div class="analytics-two-col">
+      <div class="analytics-section">
+        <div class="analytics-section-title">🎓 By Programme</div>
+        ${programmes.map(p => {
+          const d = progData[p];
+          return barRow(p, d ? d.avg : null, d ? getEcoLevel(d.avg).color : '#e5e7eb', d ? d.count : null);
+        }).join('')}
+      </div>
+      <div class="analytics-section">
+        <div class="analytics-section-title">📚 By Year of Study</div>
+        ${years.map(y => {
+          const d = yearData[y];
+          return barRow(y, d ? d.avg : null, 'var(--accent)', d ? d.count : null);
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="analytics-section">
+      <div class="analytics-section-title">🏠 By Living Arrangement</div>
+      ${livings.map(l => {
+        const d = livingData[l];
+        return barRow(l, d ? d.avg : null, '#10b981', d ? d.count : null);
+      }).join('')}
+    </div>
+
+    <div class="analytics-section">
+      <div class="analytics-section-title">🤔 Perceived vs Actual Weakest Area</div>
+      <p class="analytics-section-sub">Where students <em>think</em> they are weakest (left) vs actual assessment scores — lower score = weaker area (right).</p>
+      <div class="pva-grid">
+        <div>
+          <div class="pva-heading">Self-Reported Weakness</div>
+          ${cats.map(cat => {
+            const pct = Math.round((perceivedCounts[cat.id] / n) * 100);
+            return barRow(`${cat.icon} ${cat.name}`, pct, '#94a3b8');
+          }).join('')}
+        </div>
+        <div>
+          <div class="pva-heading">Actual Average Score</div>
+          ${cats.map(cat => barRow(`${cat.icon} ${cat.name}`, catAvg[cat.id], cat.color)).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="analytics-two-col">
+      <div class="analytics-section">
+        <div class="analytics-section-title">💪 Top 3 Strongest Behaviours</div>
+        ${top3.map(([id, d]) => `
+          <div class="analytics-behaviour-card strength">
+            <span class="abc-icon">${d.catIcon}</span>
+            <p class="abc-text">${d.text}</p>
+            <strong class="abc-score" style="color:#16a34a">${d.score}%</strong>
+          </div>
+        `).join('')}
+      </div>
+      <div class="analytics-section">
+        <div class="analytics-section-title">🎯 Top 3 Areas to Improve</div>
+        ${bottom3.map(([id, d]) => `
+          <div class="analytics-behaviour-card improve">
+            <span class="abc-icon">${d.catIcon}</span>
+            <p class="abc-text">${d.text}</p>
+            <strong class="abc-score" style="color:#ef4444">${d.score}%</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    content.querySelectorAll('.analytics-bar-fill[data-w]').forEach(bar => {
+      bar.style.width = bar.dataset.w + '%';
+    });
+  }, 100);
 }
 
 /* ─── Init ─── */

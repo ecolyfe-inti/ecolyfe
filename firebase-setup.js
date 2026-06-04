@@ -27,6 +27,10 @@ function normalizeUser(username, data) {
     password: data.password || '',
     eco_score: data.eco_score || 0,
     onboarding_complete: data.onboarding_complete || 0,
+    assessmentDone: data.assessmentDone || false,
+    programme: data.programme || '',
+    yearOfStudy: data.yearOfStudy || '',
+    livingArrangement: data.livingArrangement || '',
     checkins: toArray(data.checkins),
     quizHistory: toArray(data.quizHistory),
     bonusHistory: toArray(data.bonusHistory),
@@ -71,4 +75,15 @@ function showLoading() {
 function hideLoading() {
   const el = document.getElementById('loading-overlay');
   if (el) { el.classList.add('hidden'); }
+}
+
+async function saveAssessment(data) {
+  return db.ref('assessments').push(data);
+}
+
+async function fetchAssessments() {
+  const snap = await db.ref('assessments').once('value');
+  const arr = [];
+  snap.forEach(child => arr.push({ id: child.key, ...child.val() }));
+  return arr;
 }
