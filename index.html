@@ -4,26 +4,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EcoLyfe</title>
+  <title>EcoLyfe — Sustainability Platform</title>
+  <meta name="description" content="Track your eco habits, earn points, and build a greener lifestyle with EcoLyfe." />
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
   <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-logo">
+      <span class="loading-logo-mark">🌿</span>
+      <span class="loading-logo-text">EcoLyfe</span>
+    </div>
     <div class="loading-spinner"></div>
-    <p>Loading EcoLyfe...</p>
+    <p>Loading your dashboard…</p>
   </div>
+
+  <div id="points-toast" class="points-toast"></div>
 
   <div class="app-shell">
     <header class="hero">
-      <div>
-        <p class="eyebrow">EcoLyfe</p>
-        <h1>Track your eco habits and build a greener lifestyle.</h1>
-        <p class="hero-copy">Daily check-ins, baseline score survey, and a friendly leaderboard to keep your eco journey
-          moving forward.</p>
+      <div class="hero-brand">
+        <span class="hero-logo-mark">🌿</span>
+        <span class="hero-logo-name">EcoLyfe</span>
+      </div>
+      <div class="hero-tagline">
+        <h1>Your personal sustainability tracker</h1>
+        <p class="hero-copy">Build greener habits, earn points, and benchmark yourself against the INTI community.</p>
       </div>
       <div id="status-bar" class="status-bar"></div>
     </header>
