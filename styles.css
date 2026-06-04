@@ -1170,55 +1170,53 @@ button[disabled] {
    ASSESSMENT — INTRO SCREEN
 ══════════════════════════════════════════════════ */
 .assessment-intro {
-  text-align: left;
-  padding: 32px;
-  border-radius: 6px;
-  background: var(--surface-strong);
-  border: 1px solid rgba(0,0,0,0.12);
+  text-align: center;
+  padding: 40px 28px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--accent-soft) 0%, #dceee1 100%);
+  border: 1px solid rgba(28,74,46,0.1);
   margin-bottom: 32px;
 }
 
+.assessment-intro-icon {
+  font-size: 3.2rem;
+  margin-bottom: 14px;
+  display: block;
+  animation: floatLeaf 3s ease-in-out infinite;
+}
+
 .assessment-intro h2 {
-  margin: 0 0 12px;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+  font-size: 1.7rem;
+  color: var(--accent);
 }
 
 .assessment-intro p {
-  margin: 0 0 24px;
+  margin: 0 0 20px;
   color: var(--text-2);
-  line-height: 1.6;
-  font-size: 0.92rem;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.65;
+  font-size: 0.93rem;
 }
 
-.assessment-metadata-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
-  border-top: 1px solid rgba(0,0,0,0.08);
-  padding-top: 24px;
-}
-
-.metadata-item {
+.assessment-info-row {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.metadata-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--accent);
 }
 
-.metadata-val {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text);
+.assessment-info-row span {
+  background: white;
+  border: 1px solid rgba(28,74,46,0.15);
+  padding: 6px 16px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
 }
 
 /* ══════════════════════════════════════════════════
