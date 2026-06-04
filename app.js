@@ -426,27 +426,8 @@ function renderDemographics() {
     <h3 style="margin-bottom:16px">Your Profile</h3>
     <p style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">Used for anonymous sustainability trend analysis only.</p>
     <div class="form-group">
-      <label for="demo-programme">Programme</label>
-      <select id="demo-programme">
-        <option value="">Select your programme</option>
-        <option value="DEEI">DEEI</option>
-        <option value="DIT">DIT</option>
-        <option value="Business">Business</option>
-        <option value="Accounting">Accounting</option>
-        <option value="Hospitality">Hospitality</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="demo-year">Year of Study</label>
-      <select id="demo-year">
-        <option value="">Select your year</option>
-        <option value="Foundation">Foundation</option>
-        <option value="Year 1">Year 1</option>
-        <option value="Year 2">Year 2</option>
-        <option value="Year 3">Year 3</option>
-        <option value="Year 4">Year 4</option>
-      </select>
+      <label for="demo-programme">Programme / Course</label>
+      <input type="text" id="demo-programme" placeholder="e.g. Bachelor of Computer Science" />
     </div>
     <div class="form-group">
       <label for="demo-living">Living Arrangement</label>
@@ -463,13 +444,11 @@ function renderDemographics() {
   _assessAnswers = {};
   _assessCatIdx = 0;
   document.getElementById('begin-assessment-btn').addEventListener('click', () => {
-    const programme = document.getElementById('demo-programme').value;
-    const yearOfStudy = document.getElementById('demo-year').value;
+    const programme = document.getElementById('demo-programme').value.trim();
     const livingArrangement = document.getElementById('demo-living').value;
-    if (!programme) return alert('Please select your programme.');
-    if (!yearOfStudy) return alert('Please select your year of study.');
+    if (!programme) return alert('Please enter your programme or course.');
     if (!livingArrangement) return alert('Please select your living arrangement.');
-    _assessDemographics = { programme, yearOfStudy, livingArrangement };
+    _assessDemographics = { programme, yearOfStudy: "", livingArrangement };
     renderAssessment(0);
   });
 }
@@ -1296,19 +1275,32 @@ function renderAnalyticsContent(records) {
   LEVEL_CONFIG.forEach(l => { levelBuckets[l.level] = 0; });
   records.forEach(r => { const lv = getEcoLevel(r.overallScore || 0); levelBuckets[lv.level]++; });
 
-  const programmes = ['DEEI', 'DIT', 'Business', 'Accounting', 'Hospitality', 'Other'];
   const progData = {};
-  programmes.forEach(p => {
-    const g = records.filter(r => r.programme === p);
-    progData[p] = g.length ? { avg: Math.round(g.reduce((s, r) => s + (r.overallScore || 0), 0) / g.length), count: g.length } : null;
+  records.forEach(r => {
+    if (r.programme) {
+      const trimmed = r.programme.trim();
+      if (trimmed !== '') {
+        const canonical = trimmed.toUpperCase();
+        if (!progData[canonical]) {
+          progData[canonical] = { name: trimmed, scores: [], count: 0 };
+        }
+        progData[canonical].scores.push(r.overallScore || 0);
+        progData[canonical].count++;
+        if (trimmed.length < progData[canonical].name.length || progData[canonical].count === 1) {
+          progData[canonical].name = trimmed;
+        }
+      }
+    }
   });
 
-  const years = ['Foundation', 'Year 1', 'Year 2', 'Year 3', 'Year 4'];
-  const yearData = {};
-  years.forEach(y => {
-    const g = records.filter(r => r.yearOfStudy === y);
-    yearData[y] = g.length ? { avg: Math.round(g.reduce((s, r) => s + (r.overallScore || 0), 0) / g.length), count: g.length } : null;
-  });
+  const sortedProgrammes = Object.values(progData)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6)
+    .map(p => ({
+      name: p.name,
+      avg: Math.round(p.scores.reduce((s, v) => s + v, 0) / p.count),
+      count: p.count
+    }));
 
   const livings = ['Hostel', 'Rental', 'Family Home'];
   const livingData = {};
@@ -1363,27 +1355,19 @@ function renderAnalyticsContent(records) {
 
     <div class="analytics-two-col">
       <div class="analytics-section">
-        <div class="analytics-section-title">🎓 By Programme</div>
-        ${programmes.map(p => {
-          const d = progData[p];
-          return barRow(p, d ? d.avg : null, d ? getEcoLevel(d.avg).color : '#e5e7eb', d ? d.count : null);
+        <div class="analytics-section-title">🎓 By Programme / Course</div>
+        ${sortedProgrammes.map(p => {
+          return barRow(p.name, p.avg, getEcoLevel(p.avg).color, p.count);
         }).join('')}
+        ${sortedProgrammes.length === 0 ? '<div style="color:var(--muted); font-size:0.9rem; padding: 10px 0;">No programme data available yet.</div>' : ''}
       </div>
       <div class="analytics-section">
-        <div class="analytics-section-title">📚 By Year of Study</div>
-        ${years.map(y => {
-          const d = yearData[y];
-          return barRow(y, d ? d.avg : null, 'var(--accent)', d ? d.count : null);
+        <div class="analytics-section-title">🏠 By Living Arrangement</div>
+        ${livings.map(l => {
+          const d = livingData[l];
+          return barRow(l, d ? d.avg : null, '#10b981', d ? d.count : null);
         }).join('')}
       </div>
-    </div>
-
-    <div class="analytics-section">
-      <div class="analytics-section-title">🏠 By Living Arrangement</div>
-      ${livings.map(l => {
-        const d = livingData[l];
-        return barRow(l, d ? d.avg : null, '#10b981', d ? d.count : null);
-      }).join('')}
     </div>
 
     <div class="analytics-section">
