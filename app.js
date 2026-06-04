@@ -430,6 +430,18 @@ function renderDemographics() {
       <input type="text" id="demo-programme" placeholder="e.g. Bachelor of Computer Science" />
     </div>
     <div class="form-group">
+      <label for="demo-studentid">Student ID</label>
+      <input type="text" id="demo-studentid" placeholder="e.g. P24011234" />
+    </div>
+    <div class="form-group">
+      <label for="demo-name">Full Name</label>
+      <input type="text" id="demo-name" placeholder="e.g. Alex Green" />
+    </div>
+    <div class="form-group">
+      <label for="demo-instagram">Instagram Username (Optional)</label>
+      <input type="text" id="demo-instagram" placeholder="e.g. @alex_green" />
+    </div>
+    <div class="form-group">
       <label for="demo-living">Living Arrangement</label>
       <select id="demo-living">
         <option value="">Select your living arrangement</option>
@@ -445,10 +457,30 @@ function renderDemographics() {
   _assessCatIdx = 0;
   document.getElementById('begin-assessment-btn').addEventListener('click', () => {
     const programme = document.getElementById('demo-programme').value.trim();
+    const studentId = document.getElementById('demo-studentid').value.trim();
+    const name = document.getElementById('demo-name').value.trim();
+    const instagram = document.getElementById('demo-instagram').value.trim();
     const livingArrangement = document.getElementById('demo-living').value;
+
     if (!programme) return alert('Please enter your programme or course.');
+    
+    if (!studentId) return alert('Please enter your Student ID.');
+    const studentIdRegex = /^[Pp]\d{8}$/;
+    if (!studentIdRegex.test(studentId)) {
+      return alert('Please enter a valid Student ID (e.g. P24011234).');
+    }
+
+    if (!name) return alert('Please enter your Full Name.');
     if (!livingArrangement) return alert('Please select your living arrangement.');
-    _assessDemographics = { programme, yearOfStudy: "", livingArrangement };
+
+    _assessDemographics = { 
+      programme, 
+      studentId: studentId.toUpperCase(), 
+      name, 
+      instagram: instagram || "", 
+      yearOfStudy: "", 
+      livingArrangement 
+    };
     renderAssessment(0);
   });
 }
@@ -632,6 +664,9 @@ async function completeAssessment(scores, perceivedWeak) {
   const isNewUser = !state.user.onboarding_complete;
   const record = {
     userId: state.user.username,
+    studentId: _assessDemographics.studentId || "",
+    name: _assessDemographics.name || "",
+    instagram: _assessDemographics.instagram || "",
     timestamp: new Date().toISOString(),
     programme: _assessDemographics.programme,
     yearOfStudy: _assessDemographics.yearOfStudy,
@@ -651,6 +686,9 @@ async function completeAssessment(scores, perceivedWeak) {
   state.user.programme = _assessDemographics.programme;
   state.user.yearOfStudy = _assessDemographics.yearOfStudy;
   state.user.livingArrangement = _assessDemographics.livingArrangement;
+  state.user.studentId = _assessDemographics.studentId || "";
+  state.user.name = _assessDemographics.name || "";
+  state.user.instagram = _assessDemographics.instagram || "";
   if (isNewUser) {
     state.user.eco_score = scores.overall;
   }
