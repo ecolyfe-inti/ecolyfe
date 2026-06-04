@@ -407,24 +407,32 @@ function calculateAssessmentScores() {
 }
 
 function renderDemographics() {
-  setStatus("Welcome to EcoLyfe! Let's start with your profile.");
+  setStatus("Assessment Initialization");
   const isReturning = state.user.checkins && state.user.checkins.length > 0;
   surveyPanel.innerHTML = `
     <div class="assessment-intro">
-      <div class="assessment-intro-icon">🌍</div>
-      <h2>${isReturning ? 'New: Eco-Living Assessment' : 'Welcome to EcoLyfe!'}</h2>
+      <h2>${isReturning ? 'Sustainability Assessment Realignment' : 'Sustainability Assessment Initialization'}</h2>
       <p>${isReturning
-        ? "We've upgraded our sustainability assessment. Complete this 25-question evaluation to unlock your detailed Eco Profile and contribute to INTI's campus sustainability insights."
-        : 'Before you start earning Eco Score points, complete a short 25-question sustainability assessment. It takes about 2–3 minutes and helps us understand sustainability habits across INTI.'}
+        ? "The sustainability assessment has been updated to evaluate current practices. Complete the 25-question evaluation to re-establish your baseline and contribute to aggregated campus sustainability diagnostics."
+        : "Prior to accessing the EcoLyfe dashboard, you must complete this formal 25-question sustainability assessment. The gathered information serves to benchmark sustainability practices across the institution. The completion time is estimated at two to three minutes."}
       </p>
-      <div class="assessment-info-row">
-        <span>📋 25 Questions</span>
-        <span>⏱️ ~2–3 minutes</span>
-        <span>🔒 Anonymous data</span>
+      <div class="assessment-metadata-grid">
+        <div class="metadata-item">
+          <span class="metadata-label">Evaluation Criteria</span>
+          <span class="metadata-val">25 Questions</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Estimated Time</span>
+          <span class="metadata-val">2 to 3 minutes</span>
+        </div>
+        <div class="metadata-item">
+          <span class="metadata-label">Information Security</span>
+          <span class="metadata-val">Anonymized database record</span>
+        </div>
       </div>
     </div>
-    <h3 style="margin-bottom:16px">Your Profile</h3>
-    <p style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">Used for anonymous sustainability trend analysis only.</p>
+    <h3 style="margin-bottom:12px; font-weight:700;">Demographic Profile Setup</h3>
+    <p style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">All collected demographics are utilized solely for aggregated sustainability analytics.</p>
     <div class="form-group">
       <label for="demo-programme">Programme / Course</label>
       <input type="text" id="demo-programme" placeholder="e.g. Bachelor of Computer Science" />
@@ -450,7 +458,7 @@ function renderDemographics() {
         <option value="Family Home">Family Home</option>
       </select>
     </div>
-    <button id="begin-assessment-btn" style="width:100%;margin-top:8px">Begin Assessment →</button>
+    <button id="begin-assessment-btn" style="width:100%;margin-top:8px">Initialize Assessment</button>
   `;
   showPanel(surveyPanel);
   _assessAnswers = {};
