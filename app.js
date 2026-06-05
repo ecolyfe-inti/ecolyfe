@@ -22,7 +22,9 @@ const state = {
     { id: 2, question: 'What is the most eco-friendly way to get around town?', options: ['Driving alone', 'Biking or walking', 'Taking a taxi'], answer: 1, points: 18 },
     { id: 3, question: 'Which action saves the most energy at home?', options: ['Turning off lights when not needed', 'Leaving devices plugged in', 'Using incandescent bulbs'], answer: 0, points: 12 }
   ],
-  users: []
+  users: [],
+  posts: [],
+  assessments: []
 };
 
 const loginPanel = document.getElementById('login-panel');
@@ -1326,16 +1328,34 @@ function renderAnalytics() {
   `;
   showPanel(analyticsPanel);
   document.getElementById('back-from-analytics').addEventListener('click', () => renderDashboard());
-  db.ref('assessments').once('value', snap => {
-    const records = [];
-    snap.forEach(child => records.push(child.val()));
-    renderAnalyticsContent(records);
-  });
+  
+  if (state.assessments && state.assessments.length > 0) {
+    renderAnalyticsContent(state.assessments);
+  } else {
+    db.ref('assessments').once('value', snap => {
+      const records = [];
+      snap.forEach(child => records.push(child.val()));
+      state.assessments = records;
+      renderAnalyticsContent(records);
+    });
+  }
 }
 
-function renderAnalyticsContent(records) {
+function renderAnalyticsContent(rawRecords) {
   const content = document.getElementById('analytics-content');
   if (!content) return;
+
+  // Filter to keep only the latest assessment per user
+  const latestRecordsMap = new Map();
+  rawRecords.forEach(r => {
+    const uid = r.userId || r.name || 'anonymous';
+    const existing = latestRecordsMap.get(uid);
+    if (!existing || new Date(r.timestamp) > new Date(existing.timestamp)) {
+      latestRecordsMap.set(uid, r);
+    }
+  });
+  const records = Array.from(latestRecordsMap.values());
+
   if (records.length === 0) {
     content.innerHTML = `<div class="analytics-empty"><div style="font-size:3rem;margin-bottom:12px">📊</div><p>No assessment data yet. Be the first to complete the assessment!</p></div>`;
     return;
@@ -1537,6 +1557,15 @@ async function init() {
     state.posts = arr;
     if (!feedPanel.hidden) {
       renderFeedPanel();
+    }
+  });
+
+  db.ref('assessments').on('value', (snap) => {
+    const arr = [];
+    snap.forEach(child => { arr.push(child.val()); });
+    state.assessments = arr;
+    if (!analyticsPanel.hidden) {
+      renderAnalyticsContent(arr);
     }
   });
 
