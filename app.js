@@ -433,8 +433,8 @@ function renderDemographics() {
         <option value="other">Other</option>
       </select>
     </div>
-    <div class="form-group">
-      <label for="demo-programme">Programme / Course</label>
+    <div class="form-group" id="demo-programme-group">
+      <label for="demo-programme" id="demo-programme-label">Programme / Course</label>
       <input type="text" id="demo-programme" placeholder="e.g. Bachelor of Computer Science" />
     </div>
     <div class="form-group" id="demo-studentid-group">
@@ -464,13 +464,27 @@ function renderDemographics() {
   _assessAnswers = {};
   _assessCatIdx = 0;
 
-  // Toggle Student ID field based on Role selection
+  // Toggle dynamic fields based on Role selection
   const roleSelect = document.getElementById('demo-role');
+  const programmeGroup = document.getElementById('demo-programme-group');
+  const programmeLabel = document.getElementById('demo-programme-label');
+  const programmeInput = document.getElementById('demo-programme');
   const studentIdGroup = document.getElementById('demo-studentid-group');
+
   roleSelect.addEventListener('change', () => {
-    if (roleSelect.value === 'student') {
+    const role = roleSelect.value;
+    if (role === 'student') {
+      programmeGroup.style.display = 'block';
+      programmeLabel.textContent = 'Programme / Course';
+      programmeInput.placeholder = 'e.g. Bachelor of Computer Science';
       studentIdGroup.style.display = 'block';
-    } else {
+    } else if (role === 'teacher') {
+      programmeGroup.style.display = 'block';
+      programmeLabel.textContent = 'School / Faculty';
+      programmeInput.placeholder = 'e.g. School of Engineering, Business, or Computer Science';
+      studentIdGroup.style.display = 'none';
+    } else { // 'other'
+      programmeGroup.style.display = 'none';
       studentIdGroup.style.display = 'none';
     }
   });
@@ -483,14 +497,15 @@ function renderDemographics() {
     const instagram = document.getElementById('demo-instagram').value.trim();
     const livingArrangement = document.getElementById('demo-living').value;
 
-    if (!programme) return alert('Please enter your programme or course.');
-    
     if (role === 'student') {
+      if (!programme) return alert('Please enter your programme or course.');
       if (!studentId) return alert('Please enter your Student ID.');
       const studentIdRegex = /^[A-Za-z0-9]{7,15}$/;
       if (!studentIdRegex.test(studentId)) {
         return alert('Please enter a valid Student ID (e.g. P24016143).');
       }
+    } else if (role === 'teacher') {
+      if (!programme) return alert('Please enter your school or faculty.');
     }
 
     if (!name) return alert('Please enter your Full Name.');
@@ -498,7 +513,7 @@ function renderDemographics() {
 
     _assessDemographics = { 
       role,
-      programme, 
+      programme: role !== 'other' ? programme : "", 
       studentId: role === 'student' ? studentId.toUpperCase() : "", 
       name, 
       instagram: instagram || "", 
