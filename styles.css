@@ -1756,6 +1756,102 @@ button[disabled] {
 .abc-score { font-size: 0.95rem; font-weight: 800; white-space: nowrap; }
 
 /* ══════════════════════════════════════════════════
+   DAILY FUN FACT CARD
+══════════════════════════════════════════════════ */
+.fun-fact-card {
+  position: relative;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(255, 255, 255, 0.75) 100%);
+  border: 1.5px solid rgba(28, 74, 46, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease, border-width 0.3s ease;
+  overflow: hidden;
+  max-height: 200px;
+}
+
+.fun-fact-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.fun-fact-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  background: var(--surface-strong);
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+
+.fun-fact-body {
+  flex: 1;
+  padding-right: 24px;
+}
+
+.fun-fact-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+}
+
+.fun-fact-text {
+  font-size: 0.92rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin: 0;
+  font-weight: 500;
+}
+
+.fun-fact-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--surface-strong);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.fun-fact-close:hover {
+  background: var(--bg-alt);
+  color: var(--text);
+  border-color: rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+}
+
+.fun-fact-card.dismissed {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-width: 0;
+  border-color: transparent;
+}
+
+/* ══════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════ */
 @media (max-width: 480px) {

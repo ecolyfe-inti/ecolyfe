@@ -27,6 +27,32 @@ const state = {
   assessments: []
 };
 
+const FUN_FACTS = [
+  "Recycling one aluminum can saves enough energy to run a TV for three hours!",
+  "An average faucet flows at a rate of 2 gallons per minute. You can save up to 4 gallons of water every morning by turning off the tap while brushing your teeth.",
+  "Plastic bags and wrappers thrown away globally can wrap around the Earth 7 times every single hour.",
+  "Eating a plant-based meal just once a week saves as much water as not showering for 6 months!",
+  "LED light bulbs use up to 80% less energy and last 25 times longer than traditional incandescent bulbs.",
+  "A single mature tree can absorb more than 48 pounds of carbon dioxide from the atmosphere every year.",
+  "Energy-saving mode on your appliances can reduce electricity consumption by up to 15% without sacrificing performance.",
+  "Using a reusable water bottle saves an average of 156 plastic bottles per person every year.",
+  "Composting organic waste instead of throwing it in the landfill prevents the release of methane, a greenhouse gas 25 times more potent than carbon dioxide.",
+  "Walking or biking instead of driving for short trips of less than 2 miles can prevent tons of CO2 emissions annually.",
+  "A leaky toilet can waste up to 200 gallons of water per day without making any noise.",
+  "Recycling paper saves 60% of the energy needed to make new paper from trees, and prevents air pollution by 95%!",
+  "Approximately one-third of all food produced globally for human consumption is lost or wasted.",
+  "Shorter showers save energy! Heating water is the second-largest energy expense in most homes.",
+  "Bamboo is one of the fastest-growing plants on Earth and can be harvested sustainably without killing the plant, making it an excellent wood alternative.",
+  "The energy saved by recycling one glass bottle can power a computer for 25 minutes!"
+];
+
+function getDailyFunFact() {
+  const today = new Date();
+  const dayNum = Math.floor(today.getTime() / (1000 * 60 * 60 * 24)); // Days since epoch
+  const index = dayNum % FUN_FACTS.length;
+  return FUN_FACTS[index];
+}
+
 const loginPanel = document.getElementById('login-panel');
 const surveyPanel = document.getElementById('survey-panel');
 const dashboardPanel = document.getElementById('dashboard-panel');
@@ -743,6 +769,10 @@ async function completeAssessment(scores, perceivedWeak) {
 function renderDashboard() {
   checkAchievements();
 
+  const todayString = new Date().toISOString().slice(0, 10);
+  const dismissedDate = localStorage.getItem('ecolyfe_dismissed_fact_date');
+  const showFact = dismissedDate !== todayString;
+
   setStatus(`Welcome back, ${state.user.username}! Your Eco Score is ${state.user.eco_score}.`);
   dashboardPanel.innerHTML = `
     <div class="dashboard-header">
@@ -759,12 +789,37 @@ function renderDashboard() {
       </div>
     </div>
     <div class="score-badge">Eco Score: ${state.user.eco_score}</div>
-    <div id="prompt-list" class="card-grid"></div>
+    ${showFact ? `
+    <div class="fun-fact-card" id="fun-fact-card" style="margin-top: 20px;">
+      <div class="fun-fact-icon">💡</div>
+      <div class="fun-fact-body">
+        <div class="fun-fact-title">Sustainability Fact of the Day</div>
+        <p class="fun-fact-text">${getDailyFunFact()}</p>
+      </div>
+      <button class="fun-fact-close" id="fun-fact-close" title="Dismiss fact">✕</button>
+    </div>
+    ` : ''}
+    <div id="prompt-list" class="card-grid" style="margin-top: 20px;"></div>
     <section class="panel" id="bonus-panel"></section>
     <section class="panel" id="quiz-panel"></section>
     <section class="panel" id="achievements-panel"></section>
     <div class="toast">Use actions, bonus challenges, and quizzes to build your score. Each has its own reward path.</div>
   `;
+
+  if (showFact) {
+    const closeBtn = document.getElementById('fun-fact-close');
+    const cardEl = document.getElementById('fun-fact-card');
+    if (closeBtn && cardEl) {
+      closeBtn.addEventListener('click', () => {
+        cardEl.classList.add('dismissed');
+        localStorage.setItem('ecolyfe_dismissed_fact_date', todayString);
+        setTimeout(() => {
+          cardEl.remove();
+        }, 300);
+      });
+    }
+  }
+
   showPanel(dashboardPanel);
   document.getElementById('sign-out').addEventListener('click', () => {
     localStorage.removeItem('ecolyfeUser');
