@@ -426,10 +426,18 @@ function renderDemographics() {
     <h3 style="margin-bottom:16px">Your Profile</h3>
     <p style="color:var(--muted);margin-bottom:20px;font-size:0.9rem">Used for anonymous sustainability trend analysis only.</p>
     <div class="form-group">
+      <label for="demo-role">I am a...</label>
+      <select id="demo-role">
+        <option value="student">Student</option>
+        <option value="teacher">Teacher / Staff</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label for="demo-programme">Programme / Course</label>
       <input type="text" id="demo-programme" placeholder="e.g. Bachelor of Computer Science" />
     </div>
-    <div class="form-group">
+    <div class="form-group" id="demo-studentid-group">
       <label for="demo-studentid">Student ID</label>
       <input type="text" id="demo-studentid" placeholder="e.g. P24011234" />
     </div>
@@ -455,7 +463,20 @@ function renderDemographics() {
   showPanel(surveyPanel);
   _assessAnswers = {};
   _assessCatIdx = 0;
+
+  // Toggle Student ID field based on Role selection
+  const roleSelect = document.getElementById('demo-role');
+  const studentIdGroup = document.getElementById('demo-studentid-group');
+  roleSelect.addEventListener('change', () => {
+    if (roleSelect.value === 'student') {
+      studentIdGroup.style.display = 'block';
+    } else {
+      studentIdGroup.style.display = 'none';
+    }
+  });
+
   document.getElementById('begin-assessment-btn').addEventListener('click', () => {
+    const role = document.getElementById('demo-role').value;
     const programme = document.getElementById('demo-programme').value.trim();
     const studentId = document.getElementById('demo-studentid').value.trim();
     const name = document.getElementById('demo-name').value.trim();
@@ -464,18 +485,21 @@ function renderDemographics() {
 
     if (!programme) return alert('Please enter your programme or course.');
     
-    if (!studentId) return alert('Please enter your Student ID.');
-    const studentIdRegex = /^[A-Za-z0-9]{7,15}$/;
-    if (!studentIdRegex.test(studentId)) {
-      return alert('Please enter a valid Student ID (e.g. P24016143).');
+    if (role === 'student') {
+      if (!studentId) return alert('Please enter your Student ID.');
+      const studentIdRegex = /^[A-Za-z0-9]{7,15}$/;
+      if (!studentIdRegex.test(studentId)) {
+        return alert('Please enter a valid Student ID (e.g. P24016143).');
+      }
     }
 
     if (!name) return alert('Please enter your Full Name.');
     if (!livingArrangement) return alert('Please select your living arrangement.');
 
     _assessDemographics = { 
+      role,
       programme, 
-      studentId: studentId.toUpperCase(), 
+      studentId: role === 'student' ? studentId.toUpperCase() : "", 
       name, 
       instagram: instagram || "", 
       yearOfStudy: "", 
@@ -664,6 +688,7 @@ async function completeAssessment(scores, perceivedWeak) {
   const isNewUser = !state.user.onboarding_complete;
   const record = {
     userId: state.user.username,
+    role: _assessDemographics.role || "student",
     studentId: _assessDemographics.studentId || "",
     name: _assessDemographics.name || "",
     instagram: _assessDemographics.instagram || "",
@@ -683,6 +708,7 @@ async function completeAssessment(scores, perceivedWeak) {
   await db.ref('assessments').push(record);
   state.user.assessmentDone = true;
   state.user.onboarding_complete = 1;
+  state.user.role = _assessDemographics.role || "student";
   state.user.programme = _assessDemographics.programme;
   state.user.yearOfStudy = _assessDemographics.yearOfStudy;
   state.user.livingArrangement = _assessDemographics.livingArrangement;
