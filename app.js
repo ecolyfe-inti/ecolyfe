@@ -20,7 +20,19 @@ const state = {
   quizzes: [
     { id: 1, question: 'Which item is best to reduce plastic waste?', options: ['Plastic water bottle', 'Reusable bottle', 'Single-use straw'], answer: 1, points: 15 },
     { id: 2, question: 'What is the most eco-friendly way to get around town?', options: ['Driving alone', 'Biking or walking', 'Taking a taxi'], answer: 1, points: 18 },
-    { id: 3, question: 'Which action saves the most energy at home?', options: ['Turning off lights when not needed', 'Leaving devices plugged in', 'Using incandescent bulbs'], answer: 0, points: 12 }
+    { id: 3, question: 'Which action saves the most energy at home?', options: ['Turning off lights when not needed', 'Leaving devices plugged in', 'Using incandescent bulbs'], answer: 0, points: 12 },
+    { id: 4, question: 'Which of these has the highest carbon footprint per gram of protein?', options: ['Beef', 'Chicken', 'Beans'], answer: 0, points: 15 },
+    { id: 5, question: 'How long does it take for a standard plastic bag to decompose in a landfill?', options: ['10-20 years', '100-200 years', 'Up to 1,000 years'], answer: 2, points: 15 },
+    { id: 6, question: 'What is the primary gas produced by food waste decomposing in landfills?', options: ['Carbon Dioxide', 'Methane', 'Oxygen'], answer: 1, points: 15 },
+    { id: 7, question: 'Which type of light bulb is the most energy efficient?', options: ['Incandescent', 'Halogen', 'LED'], answer: 2, points: 12 },
+    { id: 8, question: 'What percentage of global greenhouse gas emissions come from food production?', options: ['Around 10%', 'Around 26%', 'Around 50%'], answer: 1, points: 15 },
+    { id: 9, question: 'How much water is saved by using a dishwasher instead of handwashing?', options: ['No difference', 'Up to 2 times more', 'Up to 5 times more'], answer: 2, points: 12 },
+    { id: 10, question: 'Which of the following is NOT a fossil fuel?', options: ['Coal', 'Natural Gas', 'Uranium'], answer: 2, points: 12 },
+    { id: 11, question: 'What is the most recycled material in the world by weight?', options: ['Steel', 'Plastic', 'Glass'], answer: 0, points: 15 },
+    { id: 12, question: 'How many trees are cut down annually to produce paper globally?', options: ['Around 4 billion', 'Around 100 million', 'Around 500,000'], answer: 0, points: 15 },
+    { id: 13, question: 'What is the "vampire draw" of appliances?', options: ['Power used by devices when in standby mode', 'Power surge when turning devices on', 'Power consumed during peak hours'], answer: 0, points: 12 },
+    { id: 14, question: 'Which action contributes most to marine microplastic pollution?', options: ['Washing synthetic clothes', 'Using paper straws', 'Throwing away metal cans'], answer: 0, points: 15 },
+    { id: 15, question: 'What is greywater?', options: ['Wastewater from toilets', 'Gently used water from sinks, showers, and baths', 'Highly toxic industrial water'], answer: 1, points: 15 }
   ],
   users: [],
   posts: [],
@@ -76,15 +88,28 @@ function getPromptPoints(prompt) {
   return Math.max(1, Math.round(prompt.basePoints * prompt.impact * streakMultiplier));
 }
 
-function getTodayQuiz() {
+function getTodayQuizzes() {
   const today = new Date().toISOString().slice(0, 10);
-  const index = Number(today.replace(/-/g, '')) % state.quizzes.length;
-  return state.quizzes[index];
+  const dayNum = Number(today.replace(/-/g, ''));
+  const list = [];
+  const len = state.quizzes.length;
+  
+  // Deterministically select 5 distinct questions
+  const indices = new Set();
+  let attempt = 0;
+  while (indices.size < 5 && attempt < 100) {
+    const idx = (dayNum + attempt * 7) % len;
+    indices.add(idx);
+    attempt++;
+  }
+  
+  indices.forEach(idx => list.push(state.quizzes[idx]));
+  return list;
 }
 
 function hasAnsweredQuizToday() {
   const today = new Date().toISOString().slice(0, 10);
-  return state.user.quizHistory.some(record => record.date === today);
+  return state.user.quizHistory.filter(record => record.date === today).length >= 5;
 }
 
 function saveUsers() {
@@ -943,52 +968,115 @@ function loadPrompts() {
 
 function renderQuizPanel() {
   const quizPanel = document.getElementById('quiz-panel');
-  if (hasAnsweredQuizToday()) {
-    const today = new Date().toISOString().slice(0, 10);
-    const record = state.user.quizHistory.find(item => item.date === today);
+  const today = new Date().toISOString().slice(0, 10);
+  const todayRecords = state.user.quizHistory.filter(item => item.date === today);
+  const todayAnswersCount = todayRecords.length;
+
+  if (todayAnswersCount >= 5) {
+    const totalPoints = todayRecords.reduce((sum, r) => sum + (r.pointsEarned || 0), 0);
+    const correctCount = todayRecords.filter(r => r.correct).length;
     quizPanel.innerHTML = `
       <h2>Daily Quiz</h2>
-      <p>You already answered today's quiz and earned <strong>${record.pointsEarned}</strong> bonus points.</p>
+      <p style="color:var(--text-2);font-weight:600;margin-bottom:12px;">🎉 You completed today's quiz!</p>
+      <div style="background:var(--bg-alt);padding:16px;border-radius:var(--radius);border:1px solid rgba(0,0,0,0.06);display:grid;gap:8px;">
+        <div style="display:flex;justify-content:space-between;"><span>Correct answers:</span><strong>${correctCount}/5</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>Eco Score points earned:</span><strong>+${totalPoints} pts</strong></div>
+      </div>
     `;
     return;
   }
 
-  const nextQuiz = getTodayQuiz();
+  const todayQuizzes = getTodayQuizzes();
+  const nextQuiz = todayQuizzes[todayAnswersCount];
+  const progressPct = Math.round((todayAnswersCount / 5) * 100);
+
   quizPanel.innerHTML = `
     <h2>Eco Quiz Challenge</h2>
-    <p>Answer a quiz question to earn extra Eco Score points.</p>
-    <div class="form-group quiz-options">
-      <label>${nextQuiz.question}</label>
+    <p>Answer daily questions to build your Eco Score.</p>
+    
+    <div class="quiz-progress" style="margin-top:16px;">
+      <span>Question ${todayAnswersCount + 1} of 5</span>
+      <div class="quiz-progress-bar">
+        <div class="quiz-progress-fill" style="width:${progressPct}%"></div>
+      </div>
+    </div>
+
+    <div class="form-group quiz-options" style="margin-top:14px;display:grid;gap:10px;">
+      <label style="font-size:1.05rem;margin-bottom:8px;display:block;">${nextQuiz.question}</label>
       ${nextQuiz.options.map((option, index) => `
-        <label class="quiz-option">
-          <input type="radio" name="quiz-answer" value="${index}" />
+        <label class="quiz-option" id="quiz-opt-label-${index}">
+          <input type="radio" name="quiz-answer" value="${index}" style="margin-right:8px;" />
           <span>${option}</span>
         </label>
       `).join('')}
     </div>
-    <div class="quiz-actions">
-      <button id="quiz-submit">Submit Quiz</button>
+    
+    <div id="quiz-feedback-box"></div>
+
+    <div class="quiz-actions" style="margin-top:18px;">
+      <button id="quiz-submit">Submit Answer</button>
     </div>
   `;
-  document.getElementById('quiz-submit').addEventListener('click', handleQuizSubmit);
+  document.getElementById('quiz-submit').addEventListener('click', () => handleQuizSubmit(nextQuiz, todayAnswersCount));
 }
 
-function handleQuizSubmit() {
+function handleQuizSubmit(quiz, currentIdx) {
   const answer = document.querySelector('input[name="quiz-answer"]:checked');
   if (!answer) return alert('Please choose an answer before submitting.');
 
-  const quiz = getTodayQuiz();
   const selectedIndex = Number(answer.value);
   const today = new Date().toISOString().slice(0, 10);
   const correct = selectedIndex === quiz.answer;
   const earned = correct ? quiz.points : 5;
-  const bonusLabel = correct ? `${earned} bonus points for a correct answer!` : `You earned ${earned} participation points.`;
 
+  // Visual feedback styling
+  const options = document.getElementsByName('quiz-answer');
+  options.forEach((opt, idx) => {
+    opt.disabled = true;
+    const label = document.getElementById(`quiz-opt-label-${idx}`);
+    if (idx === quiz.answer) {
+      label.classList.add('correct');
+    } else if (idx === selectedIndex) {
+      label.classList.add('wrong');
+    }
+  });
+
+  const feedbackBox = document.getElementById('quiz-feedback-box');
+  if (correct) {
+    feedbackBox.innerHTML = `
+      <div class="quiz-feedback correct">
+        <span>🎉 Correct! +${earned} points earned.</span>
+      </div>
+    `;
+  } else {
+    feedbackBox.innerHTML = `
+      <div class="quiz-feedback wrong">
+        <span>❌ Not quite! The correct answer was "${quiz.options[quiz.answer]}". +5 participation points.</span>
+      </div>
+    `;
+  }
+
+  // Update score and history
   state.user.eco_score += earned;
   state.user.quizHistory.push({ date: today, quizId: quiz.id, correct, pointsEarned: earned });
   saveUsers();
-  alert(bonusLabel);
-  renderDashboard();
+
+  // Swap submit button for "Next Question" or "Finish Quiz"
+  const submitBtn = document.getElementById('quiz-submit');
+  if (currentIdx === 4) {
+    submitBtn.textContent = 'Finish Quiz';
+  } else {
+    submitBtn.textContent = 'Next Question →';
+  }
+
+  // Update button listener to progress
+  submitBtn.onclick = null; // Remove standard event listener
+  const newSubmitBtn = submitBtn.cloneNode(true);
+  submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+
+  newSubmitBtn.addEventListener('click', () => {
+    renderDashboard();
+  });
 }
 
 function handleCheckin(promptId) {
