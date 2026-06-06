@@ -212,6 +212,7 @@ function renderLogin(isRegister = false) {
         : 'New here? <a href="#" id="toggle-mode">Create an account</a>'}
     </p>
   `;
+  localStorage.setItem('ecolyfePanel', 'login');
   showPanel(loginPanel);
   
   document.getElementById('start-button').addEventListener('click', () => {
@@ -326,12 +327,23 @@ function loadUserData(username) {
   const user = state.users.find(entry => entry.username === username);
   if (!user) {
     localStorage.removeItem('ecolyfeUser');
+    localStorage.removeItem('ecolyfePanel');
     renderLogin();
     return;
   }
   state.user = user;
+  updateLoginStreak(user);
+  saveUserToFirebase(user);
+  
   if (user.assessmentDone) {
-    renderDashboard();
+    const savedPanel = localStorage.getItem('ecolyfePanel') || 'dashboard';
+    if (savedPanel === 'feed') {
+      renderFeedPanel();
+    } else if (savedPanel === 'analytics') {
+      renderAnalytics();
+    } else {
+      renderDashboard();
+    }
   } else {
     renderDemographics();
   }
@@ -513,6 +525,7 @@ function renderDemographics() {
     </div>
     <button id="begin-assessment-btn" style="width:100%;margin-top:8px">Begin Assessment →</button>
   `;
+  localStorage.setItem('ecolyfePanel', 'demographics');
   showPanel(surveyPanel);
   _assessAnswers = {};
   _assessCatIdx = 0;
@@ -845,9 +858,11 @@ function renderDashboard() {
     }
   }
 
+  localStorage.setItem('ecolyfePanel', 'dashboard');
   showPanel(dashboardPanel);
   document.getElementById('sign-out').addEventListener('click', () => {
     localStorage.removeItem('ecolyfeUser');
+    localStorage.removeItem('ecolyfePanel');
     state.user = null;
     renderLogin();
   });
@@ -1269,6 +1284,7 @@ function renderFeedPanel() {
     </div>
   `;
 
+  localStorage.setItem('ecolyfePanel', 'feed');
   showPanel(feedPanel);
   pendingImageData = null;
 
@@ -1471,6 +1487,7 @@ function renderAnalytics() {
       </div>
     </div>
   `;
+  localStorage.setItem('ecolyfePanel', 'analytics');
   showPanel(analyticsPanel);
   document.getElementById('back-from-analytics').addEventListener('click', () => renderDashboard());
   
@@ -1718,9 +1735,10 @@ async function init() {
   await fetchAllPosts();
 
   const savedUser = localStorage.getItem('ecolyfeUser');
-  renderLogin();
   if (savedUser) {
-    document.getElementById('username').value = savedUser;
+    loadUserData(savedUser);
+  } else {
+    renderLogin();
   }
 
   hideLoading();
