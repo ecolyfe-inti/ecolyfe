@@ -1288,8 +1288,8 @@ function renderFeedPanel() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1920;
         let width = img.width;
         let height = img.height;
 
@@ -1313,7 +1313,7 @@ function renderFeedPanel() {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Compress to tiny JPEG
-        pendingImageData = canvas.toDataURL('image/jpeg', 0.85);
+        pendingImageData = canvas.toDataURL('image/jpeg', 0.88);
         
         document.getElementById('image-preview').src = pendingImageData;
         document.getElementById('image-preview-container').classList.add('active');
