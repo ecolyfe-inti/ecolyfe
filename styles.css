@@ -1712,6 +1712,451 @@ button[disabled] {
   box-shadow: var(--shadow-xs);
 }
 
+/* ══════════════════════════════════════════════════
+   RESTORED RESULTS & GAMIFICATION STYLES
+   ══════════════════════════════════════════════════ */
+
+.assessment-progress-card {
+  background: linear-gradient(135deg, var(--accent-soft), var(--bg-alt));
+  border-color: rgba(28, 74, 46, 0.15);
+}
+
+.hidden-section {
+  display: none !important;
+}
+
+.active-section {
+  display: block !important;
+  animation: fadeIn 0.4s ease;
+}
+
+.assessment-nav-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+.secondary-btn {
+  background: var(--white);
+  border: 1.5px solid var(--accent-light);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.secondary-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+/* Results Scores & radial gauge */
+.results-score-card-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 20px;
+  background: linear-gradient(135deg, var(--surface-strong) 0%, var(--accent-soft) 100%);
+  border: 1px solid rgba(28, 74, 46, 0.1);
+  border-radius: var(--radius-xl);
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.score-radial-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 16px;
+}
+
+.score-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.score-ring-bg {
+  fill: none;
+  stroke: var(--bg-alt);
+  stroke-width: 7;
+}
+
+.score-ring-fill {
+  fill: none;
+  stroke: var(--accent-mid);
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.score-inner-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-inner-text .score-number {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent-mid));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.score-inner-text .score-total {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: -4px;
+}
+
+.score-grade-badge {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--white);
+  padding: 6px 18px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.score-interpretation-text {
+  font-size: 0.92rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-top: 6px;
+  max-width: 460px;
+}
+
+/* Impact Analysis lists */
+.analysis-subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.strength-title { color: var(--success); }
+.improvement-title { color: var(--gold); }
+
+.analysis-list {
+  padding-left: 20px;
+  font-size: 0.92rem;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.analysis-list li {
+  margin-bottom: 8px;
+}
+
+.strength-list li::marker { color: var(--success); }
+.improvement-list li::marker { color: var(--gold); }
+
+/* Recommended actions */
+.recommendations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recommendation-item {
+  display: flex;
+  gap: 14px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(28, 74, 46, 0.12);
+  padding: 16px;
+  border-radius: var(--radius);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.recommendation-item:hover {
+  transform: translateX(3px);
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--surface-strong) 100%);
+}
+
+.rec-number {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-mid), var(--accent));
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.rec-content {
+  flex: 1;
+}
+
+.rec-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.rec-desc {
+  font-size: 0.88rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.rec-rationale {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--accent-mid);
+  background: rgba(45, 106, 66, 0.08);
+  border-left: 2.5px solid var(--accent);
+  padding: 8px 10px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Scoring methodology text */
+.methodology-text, .resources-intro, .citations-text {
+  font-size: 0.92rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.methodology-breakdown {
+  display: flex;
+  flex-direction: column;
+  margin: 12px 0 16px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.method-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 11px 16px;
+  background: var(--bg-alt);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-size: 0.88rem;
+}
+
+.method-row:last-child {
+  border-bottom: none;
+}
+
+.method-row span {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.method-row strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.methodology-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Accordion components */
+.resources-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.resource-card-item {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.resource-card-item:hover {
+  border-color: rgba(28, 74, 46, 0.2);
+  box-shadow: var(--shadow-sm);
+}
+
+.resource-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  background: var(--surface-strong);
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.resource-header:hover {
+  background: var(--accent-soft);
+}
+
+.resource-header.active-header {
+  background: var(--accent-soft);
+  border-bottom: 1px solid rgba(28, 74, 46, 0.15);
+  color: var(--accent);
+}
+
+.resource-arrow {
+  font-size: 11px;
+  color: var(--muted-light);
+  transition: transform 0.2s;
+}
+
+.resource-header.active-header .resource-arrow {
+  color: var(--accent);
+}
+
+.resource-body {
+  padding: 16px;
+  font-size: 0.88rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  background: var(--surface-strong);
+  animation: fadeIn 0.25s ease;
+}
+
+.resource-body p {
+  margin: 0;
+}
+
+.resource-tip {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  background: var(--gold-soft);
+  border: 1.5px dashed var(--gold-light);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--gold);
+  line-height: 1.45;
+}
+
+/* Citations block */
+.citations-card {
+  background: var(--bg-alt);
+  border-color: rgba(0,0,0,0.06);
+}
+
+.citations-list {
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.citations-list li {
+  margin-bottom: 8px;
+}
+
+.citations-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* Gamification - Daily Streak Calendar Grid */
+.streak-calendar {
+  margin-top: 14px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--accent-soft), var(--bg-alt));
+  border-radius: var(--radius);
+  border: 1px solid rgba(28, 74, 46, 0.12);
+}
+
+.streak-days-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendar-day-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  padding: 8px 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--surface-strong);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.calendar-day-box.checked {
+  background: var(--accent-soft);
+  border-color: var(--accent-light);
+  color: var(--accent);
+}
+
+.calendar-day-box.today {
+  border: 1.5px solid var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-day-box .day-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.calendar-day-box.checked .day-label {
+  color: var(--accent);
+}
+
+.calendar-day-box .day-indicator {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted-light);
+}
+
+.calendar-day-box.checked .day-indicator {
+  color: var(--accent-mid);
+}
+
+/* Educational Quiz explanations */
+.quiz-explanation {
+  margin-top: 12px;
+  font-size: 0.88rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left: 4.5px solid var(--accent-mid);
+  padding: 10px 14px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  line-height: 1.5;
+  border-top: 1px solid rgba(28, 74, 46, 0.12);
+  border-right: 1px solid rgba(28, 74, 46, 0.12);
+  border-bottom: 1px solid rgba(28, 74, 46, 0.12);
+  animation: fadeIn 0.4s ease;
+}
+
 .analytics-section-title {
   font-size: 0.95rem;
   font-weight: 700;

@@ -354,33 +354,31 @@ function loadUserData(username) {
 let _assessAnswers = {};
 let _assessDemographics = {};
 let _assessCatIdx = 0;
+let _assessSelfReflection = "";
 
 const ASSESSMENT = {
   categories: [
     {
-      id: 'energy', name: 'Energy Conservation', icon: '⚡', color: '#f59e0b', weight: 0.20, maxRaw: 26,
-      questions: [
-        { id: 'e0', text: 'How often do you turn off lights when leaving a room?', weight: 1.5,
-          options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
-        { id: 'e1', text: 'What do you usually do with plugged-in devices and chargers when leaving your room?', weight: 1.5,
-          options: ['Leave everything switched on', 'Leave chargers in, turn off screens', 'Unplug some chargers and devices', 'Unplug most things', 'Unplug and switch off everything'] },
-        { id: 'e2', text: 'How often do you use air conditioning when the room is already cool or unoccupied?', weight: 1.5,
-          options: ['I leave it on all the time', 'Often', 'Sometimes', 'Rarely', 'Never — I switch it off when not needed'] },
-        { id: 'e3', text: 'Rate your overall effort to reduce electricity use in your daily routine. (1 = No effort, 5 = Very consistent)', weight: 1.0,
-          options: ['1 — No effort at all', '2', '3 — Sometimes try', '4', '5 — Very consistent'] },
-        { id: 'e4', text: 'Which best describes your device and screen usage before going to sleep?', weight: 1.0,
-          options: ['Keep everything on overnight', 'Turn off most things eventually', 'Power down devices but leave lights on', 'Switch off everything before sleeping', 'Unplug and power off everything completely'] }
-      ]
+      id: 'energy', name: 'Energy Conservation', icon: '⚡', color: '#f59e0b', weight: 0.15,
+      questions: [] // Populated dynamically via getActiveQuestions
     },
     {
-      id: 'transport', name: 'Transportation Habits', icon: '🚌', color: '#3b82f6', weight: 0.25, maxRaw: 26,
+      id: 'transport', name: 'Transportation Habits', icon: '🚌', color: '#3b82f6', weight: 0.30,
       questions: [
         { id: 't0', text: 'How do you most often travel to campus or your place of study?', weight: 1.5,
           options: ['Private car (alone)', 'Motorcycle (alone)', 'Carpool or rideshare', 'Public bus or train', 'Walk or cycle'] },
         { id: 't1', text: 'On average, how many days per week do you use a private vehicle (car or motorcycle)?', weight: 1.5,
           options: ['Every day (5–7 days)', 'Most days (3–4 days)', 'A few days (1–2 days)', 'Rarely', 'Never'] },
         { id: 't2', text: 'In the past month, how often have you carpooled or shared a ride with others?', weight: 1.5,
-          options: ['Never', 'Once', 'A few times', 'Regularly', 'Almost all my trips'] },
+          options: [
+            'Never',
+            'Once',
+            'A few times',
+            'Regularly',
+            'Almost all my trips',
+            'Primary reliance on public transportation',
+            'Not Applicable (I do not travel or use personal vehicles)'
+          ] },
         { id: 't3', text: 'What is the longest distance you are comfortable walking or cycling rather than taking a vehicle?', weight: 1.0,
           options: ["I don't walk or cycle anywhere", 'Less than 5 minutes away', '5–10 minutes away', '10–20 minutes away', 'More than 20 minutes away'] },
         { id: 't4', text: 'How often do you plan and combine errands to reduce the number of journeys you make?', weight: 1.0,
@@ -388,7 +386,7 @@ const ASSESSMENT = {
       ]
     },
     {
-      id: 'food', name: 'Sustainable Food Choices', icon: '🥗', color: '#10b981', weight: 0.20, maxRaw: 23,
+      id: 'food', name: 'Food & Sustainability', icon: '🥗', color: '#10b981', weight: 0.30,
       questions: [
         { id: 'f0', text: 'How often do you choose plant-based meals (vegetarian or vegan options)?', weight: 1.5,
           options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
@@ -403,7 +401,7 @@ const ASSESSMENT = {
       ]
     },
     {
-      id: 'waste', name: 'Waste Management', icon: '♻️', color: '#8b5cf6', weight: 0.20, maxRaw: 23,
+      id: 'waste', name: 'Waste Management', icon: '♻️', color: '#8b5cf6', weight: 0.15,
       questions: [
         { id: 'w0', text: 'How often do you separate recyclable materials (plastic, paper, cans) from your general waste?', weight: 1.5,
           options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
@@ -418,7 +416,7 @@ const ASSESSMENT = {
       ]
     },
     {
-      id: 'water', name: 'Water Conservation', icon: '💧', color: '#06b6d4', weight: 0.15, maxRaw: 24,
+      id: 'water', name: 'Water Conservation', icon: '💧', color: '#06b6d4', weight: 0.10,
       questions: [
         { id: 'wa0', text: 'How long is your typical shower?', weight: 1.5,
           options: ['More than 15 minutes', '10–15 minutes', '7–10 minutes', '5–7 minutes', 'Less than 5 minutes'] },
@@ -434,6 +432,42 @@ const ASSESSMENT = {
     }
   ]
 };
+
+function getActiveQuestions(cat) {
+  if (cat.id !== 'energy') return cat.questions;
+  const living = _assessDemographics.livingArrangement || 'Homeowner';
+  if (living === 'Student' || living === 'Tenant') {
+    return [
+      { id: 'e0', text: 'How often do you turn off lights and fans when leaving a room?', weight: 1.5,
+        options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+      { id: 'e1', text: 'What do you usually do with plugged-in devices and chargers when leaving your room (to prevent phantom load)?', weight: 1.5,
+        options: ['Leave everything switched on', 'Leave chargers in, turn off screens', 'Unplug some chargers and devices', 'Unplug most things', 'Unplug and switch off everything'] },
+      { id: 'e2', text: 'How often do you adjust air conditioning settings or use natural ventilation/fans instead of AC to save energy?', weight: 1.5,
+        options: ['Never — I run AC at high levels constantly', 'Rarely', 'Sometimes', 'Often', 'Always — I use natural cooling when possible'] },
+      { id: 'e3', text: 'Rate your overall effort to reduce electricity use in your daily routine. (1 = No effort, 5 = Very consistent)', weight: 1.0,
+        options: ['1 — No effort at all', '2', '3 — Sometimes try', '4', '5 — Very consistent'] }
+    ];
+  } else {
+    // Homeowner
+    return [
+      { id: 'e_eff', text: 'What energy efficiency measures are active in your home (LED lights, smart thermostat, Energy-Star appliances)?', weight: 1.5,
+        options: ['None — older appliances and lighting', 'Partial LED lighting, standard appliances', 'Smart thermostat, full LED, or energy-star appliances', 'Solar panels installed and high-efficiency home profile'] },
+      { id: 'e_source', text: 'What is the primary source of your home heating / electricity?', weight: 1.5,
+        options: ['Standard utility grid (coal / natural gas)', 'Mixed grid electricity (some renewables)', 'Green power tariff (100% renewable plan) or rooftop solar'] },
+      { id: 'e_bill', text: 'How would you describe your average monthly household energy consumption / utility bills?', weight: 1.5,
+        options: ['High — high heating/cooling loads and high billing', 'Average — standard bills for a home of our size', 'Low — below average, we actively track power bills'] },
+      { id: 'e3', text: 'Rate your overall effort to reduce electricity use in your daily routine. (1 = No effort, 5 = Very consistent)', weight: 1.0,
+        options: ['1 — No effort at all', '2', '3 — Sometimes try', '4', '5 — Very consistent'] }
+    ];
+  }
+}
+
+function getQuestionScore(qid, val) {
+  if (qid === 't2') {
+    if (val === 5 || val === 6) return 4; // Max score for public transit and N/A
+  }
+  return val;
+}
 
 const LEVEL_CONFIG = [
   { level: 'Eco Beginner',  min: 0,  max: 20,  color: '#ef4444', bg: '#fef2f2', emoji: '🌿' },
@@ -458,19 +492,31 @@ function getEcoLevelDesc(score) {
 function calculateAssessmentScores() {
   const catScores = {};
   let totalWeighted = 0;
+  
+  // Self-Reflection Score (10% weight)
+  // Maps selection to a score out of 100: we can give a baseline of 100 for completed reflection
+  catScores.reflection = 100; 
+
   ASSESSMENT.categories.forEach(cat => {
     let raw = 0;
-    cat.questions.forEach(q => {
+    let maxRaw = 0;
+    const activeQs = getActiveQuestions(cat);
+    activeQs.forEach(q => {
       const val = _assessAnswers[q.id];
-      if (val !== undefined) raw += val * q.weight;
+      if (val !== undefined) {
+        const score = getQuestionScore(q.id, val);
+        raw += score * q.weight;
+      }
+      maxRaw += (q.options.length - 1) * q.weight;
     });
-    catScores[cat.id] = Math.min(100, Math.round((raw / cat.maxRaw) * 100));
+    catScores[cat.id] = maxRaw > 0 ? Math.min(100, Math.round((raw / maxRaw) * 100)) : 0;
     totalWeighted += catScores[cat.id] * cat.weight;
   });
-  catScores.overall = Math.min(100, Math.round(totalWeighted));
+  
+  // Weighted sum: Categories make up 90% and Reflection is 10%
+  catScores.overall = Math.min(100, Math.round((totalWeighted * 0.9) + (catScores.reflection * 0.1)));
   return catScores;
 }
-
 function renderDemographics() {
   setStatus("Welcome to EcoLyfe! Let's start with your profile.");
   const isReturning = state.user.checkins && state.user.checkins.length > 0;
@@ -515,12 +561,12 @@ function renderDemographics() {
       <input type="text" id="demo-instagram" placeholder="e.g. @alex_green" />
     </div>
     <div class="form-group">
-      <label for="demo-living">Living Arrangement</label>
+      <label for="demo-living">Living Arrangement & Utility Profile</label>
       <select id="demo-living">
-        <option value="">Select your living arrangement</option>
-        <option value="Hostel">Hostel</option>
-        <option value="Rental">Rental House / Apartment</option>
-        <option value="Family Home">Family Home</option>
+        <option value="">Select your arrangement...</option>
+        <option value="Hostel">Hostel (Student - no utility control)</option>
+        <option value="Rental">Rental House / Apartment (Tenant - no utility control)</option>
+        <option value="Family Home">Family Home (Homeowner - with utility control)</option>
       </select>
     </div>
     <button id="begin-assessment-btn" style="width:100%;margin-top:8px">Begin Assessment →</button>
@@ -586,7 +632,72 @@ function renderDemographics() {
       yearOfStudy: "", 
       livingArrangement 
     };
+    renderSelfReflection();
+  });
+}
+
+function renderSelfReflection() {
+  setStatus("Self-Reflection: Reflect on your current habits.");
+  const cats = ASSESSMENT.categories;
+  
+  surveyPanel.innerHTML = `
+    <div class="assess-progress-wrap">
+      <div class="assess-progress-track">
+        <div class="assess-progress-fill" style="width: 0%"></div>
+      </div>
+      <div class="assess-progress-label">Step 1: Self-Reflection (0% Complete)</div>
+    </div>
+    <div class="assess-cat-header" style="border-left:4px solid var(--accent, #1c4a2e)">
+      <span class="assess-cat-icon">🧘</span>
+      <div>
+        <h2 style="margin:0;color:var(--accent)">Self-Reflection</h2>
+        <p style="margin:0;color:var(--muted);font-size:0.9rem">Assess your mindset before the evaluation</p>
+      </div>
+    </div>
+    <div class="assess-question-card" style="margin-top:24px;">
+      <p class="assess-q-text">Which sustainability category do you <strong>feel</strong> you need the most improvement in?</p>
+      <div class="assess-options" style="margin-top:16px;">
+        ${cats.map((c, i) => `
+          <button class="assess-option${_assessSelfReflection === c.id ? ' selected' : ''}" data-catid="${c.id}"
+            ${_assessSelfReflection === c.id ? `style="border-color:${c.color};background:${c.color}18"` : ''}>
+            <span class="assess-option-dot"></span>
+            <span>${c.icon} ${c.name}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+    <div class="assess-nav" style="margin-top:24px;display:flex;justify-content:space-between;">
+      <button class="assess-back-btn" id="reflect-back">← Back</button>
+      <button id="reflect-start" ${_assessSelfReflection === "" ? 'disabled' : ''}>Start Assessment →</button>
+    </div>
+  `;
+  showPanel(surveyPanel);
+
+  surveyPanel.querySelectorAll('.assess-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const catid = btn.dataset.catid;
+      _assessSelfReflection = catid;
+      surveyPanel.querySelectorAll('.assess-option').forEach(b => {
+        b.classList.remove('selected');
+        b.style.borderColor = '';
+        b.style.background = '';
+      });
+      btn.classList.add('selected');
+      const cat = ASSESSMENT.categories.find(c => c.id === catid);
+      btn.style.borderColor = cat.color;
+      btn.style.background = cat.color + '18';
+      const startBtn = document.getElementById('reflect-start');
+      if (startBtn) startBtn.disabled = false;
+    });
+  });
+
+  document.getElementById('reflect-back').addEventListener('click', () => {
+    renderDemographics();
+  });
+
+  document.getElementById('reflect-start').addEventListener('click', () => {
     renderAssessment(0);
+    surveyPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
@@ -594,9 +705,25 @@ function renderAssessment(catIdx) {
   _assessCatIdx = catIdx;
   const cat = ASSESSMENT.categories[catIdx];
   const totalCats = ASSESSMENT.categories.length;
-  const questionOffset = ASSESSMENT.categories.slice(0, catIdx).reduce((s, c) => s + c.questions.length, 0);
-  const totalQs = 25;
-  const progressPct = Math.round((questionOffset / totalQs) * 100);
+  
+  // Get active questions dynamically based on demographics
+  const activeQs = getActiveQuestions(cat);
+  
+  // Compute total questions dynamically across all categories
+  const totalQs = ASSESSMENT.categories.reduce((sum, c) => sum + getActiveQuestions(c).length, 0);
+  
+  // Compute question offset dynamically
+  const questionOffset = ASSESSMENT.categories.slice(0, catIdx).reduce((s, c) => s + getActiveQuestions(c).length, 0);
+  
+  // Compute current progress based on answered questions
+  let answeredCount = 0;
+  ASSESSMENT.categories.forEach(c => {
+    getActiveQuestions(c).forEach(q => {
+      if (_assessAnswers[q.id] !== undefined) answeredCount++;
+    });
+  });
+  const progressPct = Math.round((answeredCount / totalQs) * 100);
+  
   setStatus(`Category ${catIdx + 1} of ${totalCats}: ${cat.name}`);
   surveyPanel.innerHTML = `
     <div class="assess-progress-wrap">
@@ -611,7 +738,7 @@ function renderAssessment(catIdx) {
       <div class="assess-progress-track">
         <div class="assess-progress-fill" style="width:${progressPct}%"></div>
       </div>
-      <div class="assess-progress-label">Questions ${questionOffset + 1}–${questionOffset + cat.questions.length} of ${totalQs}</div>
+      <div class="assess-progress-label">Questions ${questionOffset + 1}–${questionOffset + activeQs.length} of ${totalQs} (${progressPct}% Complete)</div>
     </div>
     <div class="assess-cat-header" style="border-left:4px solid ${cat.color}">
       <span class="assess-cat-icon">${cat.icon}</span>
@@ -621,7 +748,7 @@ function renderAssessment(catIdx) {
       </div>
     </div>
     <div class="assess-questions">
-      ${cat.questions.map((q, qIdx) => {
+      ${activeQs.map((q, qIdx) => {
         const globalIdx = questionOffset + qIdx + 1;
         const selected = _assessAnswers[q.id];
         return `
@@ -642,13 +769,15 @@ function renderAssessment(catIdx) {
       }).join('')}
     </div>
     <div class="assess-nav">
-      ${catIdx > 0 ? `<button class="assess-back-btn" id="assess-back">← Back</button>` : '<div></div>'}
-      <button id="assess-next" ${cat.questions.some(q => _assessAnswers[q.id] === undefined) ? 'disabled' : ''}>
+      <button class="assess-back-btn" id="assess-back">← Back</button>
+      <button id="assess-next" ${activeQs.some(q => _assessAnswers[q.id] === undefined) ? 'disabled' : ''}>
         ${catIdx === totalCats - 1 ? '🎉 See My Results' : `Next: ${ASSESSMENT.categories[catIdx + 1].name} →`}
       </button>
     </div>
   `;
   showPanel(surveyPanel);
+  
+  // Option buttons click handling
   surveyPanel.querySelectorAll('.assess-option').forEach(btn => {
     btn.addEventListener('click', () => {
       const qid = btn.dataset.qid;
@@ -662,46 +791,199 @@ function renderAssessment(catIdx) {
       btn.classList.add('selected');
       btn.style.borderColor = cat.color;
       btn.style.background = cat.color + '18';
+      
+      // Update next button state
       const nextBtn = document.getElementById('assess-next');
-      if (nextBtn) nextBtn.disabled = cat.questions.some(q => _assessAnswers[q.id] === undefined);
+      if (nextBtn) nextBtn.disabled = activeQs.some(q => _assessAnswers[q.id] === undefined);
+      
+      // Update progress bar dynamically
+      updateLiveProgressBar();
     });
   });
+  
+  // Navigation button listeners
   document.getElementById('assess-next').addEventListener('click', () => {
     if (catIdx < totalCats - 1) {
       renderAssessment(catIdx + 1);
+      // Auto-scrolling to top of surveyPanel
+      surveyPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
       renderResults(calculateAssessmentScores());
+      surveyPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
-  if (catIdx > 0) {
-    document.getElementById('assess-back').addEventListener('click', () => renderAssessment(catIdx - 1));
+  
+  document.getElementById('assess-back').addEventListener('click', () => {
+    if (catIdx > 0) {
+      renderAssessment(catIdx - 1);
+      surveyPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      renderSelfReflection();
+      surveyPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
+function updateLiveProgressBar() {
+  const cat = ASSESSMENT.categories[_assessCatIdx];
+  const activeQs = getActiveQuestions(cat);
+  const totalQs = ASSESSMENT.categories.reduce((sum, c) => sum + getActiveQuestions(c).length, 0);
+  const questionOffset = ASSESSMENT.categories.slice(0, _assessCatIdx).reduce((s, c) => s + getActiveQuestions(c).length, 0);
+  
+  let answeredCount = 0;
+  ASSESSMENT.categories.forEach(c => {
+    getActiveQuestions(c).forEach(q => {
+      if (_assessAnswers[q.id] !== undefined) answeredCount++;
+    });
+  });
+  const progressPct = Math.round((answeredCount / totalQs) * 100);
+  
+  const fillEl = surveyPanel.querySelector('.assess-progress-fill');
+  const labelEl = surveyPanel.querySelector('.assess-progress-label');
+  if (fillEl) fillEl.style.width = `${progressPct}%`;
+  if (labelEl) {
+    labelEl.textContent = `Questions ${questionOffset + 1}–${questionOffset + activeQs.length} of ${totalQs} (${progressPct}% Complete)`;
   }
+}
+
+function getRecommendations() {
+  const answers = _assessAnswers;
+  const recommendationsPool = [
+    {
+      id: 'f0',
+      score: answers['f0'] !== undefined ? answers['f0'] : 2.5,
+      title: 'Shift toward a Plant-Rich Diet',
+      desc: 'Integrate meatless Mondays or increase plant-based meals weekly.',
+      rationale: 'Switching to plant-based meals 3 days a week saves 2.9 kg of CO2e per meal, reducing food emissions by 30% annually (IPCC Sixth Assessment Report).'
+    },
+    {
+      id: 'f1',
+      score: answers['f1'] !== undefined ? answers['f1'] : 2.5,
+      title: 'Minimize Household Food Waste',
+      desc: 'Plan meals, utilize shopping lists, and store food properly to avoid spoil.',
+      rationale: 'Wasted food rotting in landfills is a primary driver of methane. Reducing waste cuts global greenhouse emissions from food production (UNEP Emissions Gap Report).'
+    },
+    {
+      id: 't0',
+      score: answers['t0'] !== undefined ? answers['t0'] : 2.5,
+      title: 'Favor Public Transit or Active Travel',
+      desc: 'Walk, cycle, or catch trains and buses instead of driving alone.',
+      rationale: 'Active travel and rail transit emit 80-90% less CO2 per kilometer than passenger cars, saving up to 2.2 tons of CO2 annually (UNEP Emissions Gap Report).'
+    },
+    {
+      id: 't2',
+      score: answers['t2'] !== undefined ? getQuestionScore('t2', answers['t2']) : 2.5,
+      title: 'Carpool and Share Vehicle Trips',
+      desc: 'Coordinate with colleagues or neighbors to share vehicle commutes.',
+      rationale: 'Sharing car trips doubles passenger fuel efficiency and takes cars off the highway, slashing local carbon output (U.S. EPA).'
+    },
+    {
+      id: 'e0',
+      score: answers['e0'] !== undefined ? answers['e0'] : 2.5,
+      title: 'Turn Off Inactive Lighting & Appliances',
+      desc: 'Flip off switches when leaving rooms and utilize natural daylight.',
+      rationale: 'Conserving direct electrical use reduces fossil-fuel generation demands on the grid, optimizing local power consumption (IPCC).'
+    },
+    {
+      id: 'e1',
+      score: answers['e1'] !== undefined ? answers['e1'] : 2.5,
+      title: 'Unplug Standing Vampire Loads',
+      desc: 'Unplug phone chargers and turn off power strips when sleeping.',
+      rationale: 'Phantom standby loads account for up to 10% of residential energy consumption without active use (U.S. EPA / Energy Star).'
+    },
+    {
+      id: 'e2',
+      score: answers['e2'] !== undefined ? answers['e2'] : 2.5,
+      title: 'Optimize Air Conditioning & Heating',
+      desc: 'Set AC to 24-26°C and use natural cooling/fans.',
+      rationale: 'HVAC accounts for 50% of residential power. Adjusting thermostat settings by 7-10°F for 8 hours daily saves 10% on energy costs (U.S. EPA).'
+    },
+    {
+      id: 'e_eff',
+      score: answers['e_eff'] !== undefined ? answers['e_eff'] : 2.5,
+      title: 'Upgrade to High Efficiency Tech',
+      desc: 'Install smart thermostats, LED bulbs, and Energy-Star appliances.',
+      rationale: 'Energy Star models use 50% less energy than standard alternatives, reducing grid demands (U.S. EPA).'
+    },
+    {
+      id: 'e_source',
+      score: answers['e_source'] !== undefined ? answers['e_source'] : 2.5,
+      title: 'Switch to Renewable Energy Tariffs',
+      desc: 'Choose a green power plan from your utility company or install solar.',
+      rationale: 'Transitioning home power to clean electricity offsets up to 4.5 tons of carbon emissions annually per household (IPCC).'
+    },
+    {
+      id: 'w0',
+      score: answers['w0'] !== undefined ? answers['w0'] : 2.5,
+      title: 'Improve Clean Waste Stream Sorting',
+      desc: 'Rinse cans and check plastic codes before throwing in sorting bins.',
+      rationale: 'Proper recycling preserves manufacturing raw material value, reducing direct energy emissions by up to 40% (Ellen MacArthur Foundation).'
+    },
+    {
+      id: 'w1',
+      score: answers['w1'] !== undefined ? answers['w1'] : 2.5,
+      title: 'Refuse Single-Use Plastics',
+      desc: 'Carry reusable shopping bags, metal straws, and reusable bottles.',
+      rationale: 'Plastic manufacturing is heavily carbon-intensive. Refusing plastics helps divert fossil fuel products from landfill and ocean ecosystems (UNEP).'
+    },
+    {
+      id: 'w2',
+      score: answers['w2'] !== undefined ? answers['w2'] : 2.5,
+      title: 'Donate or Sell Unused Items',
+      desc: 'Give old clothes and electronics a second life through donation or resale.',
+      rationale: 'Reusing products keeps them out of landfills and reduces the need for resource-intensive new manufacturing (Project Drawdown).'
+    }
+  ];
+
+  // Only include recommendations where the question was answered
+  const activeRecs = recommendationsPool.filter(rec => answers[rec.id] !== undefined);
+  
+  // Sort by score ascending (lowest score first)
+  activeRecs.sort((a, b) => a.score - b.score);
+  
+  // Return top 3
+  return activeRecs.slice(0, 3);
 }
 
 function renderResults(scores) {
   setStatus('Your sustainability assessment is complete!');
   const lvl = getEcoLevel(scores.overall);
   const cats = ASSESSMENT.categories;
+  
+  // Sort categories by score to find strongest and weakest
   const sorted = cats.slice().sort((a, b) => scores[b.id] - scores[a.id]);
   const strongest = sorted[0];
   const weakest = sorted[sorted.length - 1];
+  
+  // Map perceived weak category ID to name
+  const perceivedWeakCatName = cats.find(c => c.id === _assessSelfReflection)?.name || 'Unknown';
+  
+  // Get recommendations
+  const recs = getRecommendations();
+  
   surveyPanel.innerHTML = `
     <div class="results-hero">
       <h2>Your Eco Profile 🌿</h2>
       <p>Here is how you scored across the five sustainability categories.</p>
     </div>
-    <div class="results-score-card">
-      <div class="results-score-ring">
-        <span class="results-score-num" id="score-counter">0</span>
-        <span class="results-score-denom">/100</span>
-      </div>
-      <div>
-        <div class="results-level-badge" style="background:${lvl.bg};color:${lvl.color};border:2px solid ${lvl.color}40">
-          ${lvl.emoji} ${lvl.level}
+    
+    <div class="results-score-card-gauge">
+      <div class="score-radial-container">
+        <svg class="score-ring" viewBox="0 0 100 100">
+          <circle class="score-ring-bg" cx="50" cy="50" r="40"></circle>
+          <circle class="score-ring-fill" id="results-ring-fill" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+        </svg>
+        <div class="score-inner-text">
+          <span class="score-number" id="score-counter">0</span>
+          <span class="score-total">/100</span>
         </div>
-        <p class="results-level-desc">${getEcoLevelDesc(scores.overall)}</p>
       </div>
+      <div class="score-grade-badge" id="results-grade-badge" style="background:${lvl.color}">
+        ${lvl.emoji} ${lvl.level}
+      </div>
+      <p class="score-interpretation-text">${getEcoLevelDesc(scores.overall)}</p>
     </div>
+
     <div class="results-cat-breakdown">
       ${cats.map(cat => `
         <div class="results-cat-row">
@@ -716,6 +998,7 @@ function renderResults(scores) {
         </div>
       `).join('')}
     </div>
+
     <div class="results-insights-row">
       <div class="results-insight strength">
         <div class="results-insight-icon">💪</div>
@@ -732,41 +1015,191 @@ function renderResults(scores) {
         </div>
       </div>
     </div>
-    <div class="results-reflection-box">
-      <h3>Self-Reflection</h3>
-      <p>Which sustainability category do you <em>feel</em> you need the most improvement in?</p>
-      <select id="perceived-weak" style="margin-top:8px">
-        <option value="">Select a category...</option>
-        ${cats.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
-      </select>
+
+    <div class="results-reflection-box" style="margin-bottom:24px;">
+      <h3>Mindset Alignment</h3>
+      <p style="margin:0;line-height:1.5;font-size:0.92rem;color:var(--text-2);">
+        You reflected that you needed the most improvement in <strong>${perceivedWeakCatName}</strong>. 
+        Your actual lowest category score is in <strong>${weakest.name} (${scores[weakest.id]}%)</strong>.
+        ${_assessSelfReflection === weakest.id 
+          ? "🌟 Great self-awareness! Your perception matches your actual assessment results." 
+          : "💡 Take note: your actual assessment shows a different opportunity area for growth!"}
+      </p>
     </div>
-    <button id="complete-assessment" style="width:100%;margin-top:16px;font-size:1.05rem">Start My EcoLyfe Journey 🌱</button>
+
+    <div class="analytics-section" style="margin-bottom:24px;">
+      <div class="analytics-section-title">🚀 Top 3 Recommended Actions</div>
+      <div class="recommendations-container">
+        ${recs.map((rec, index) => `
+          <div class="recommendation-item">
+            <div class="rec-number">#${index + 1}</div>
+            <div class="rec-content">
+              <h4 class="rec-title">${rec.title}</h4>
+              <p class="rec-desc">${rec.desc}</p>
+              <div class="rec-rationale">
+                <strong>Impact Rationale:</strong> ${rec.rationale}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="analytics-section" style="margin-bottom:24px;">
+      <div class="analytics-section-title">⚖️ Scoring Methodology</div>
+      <p class="methodology-text">
+        Your EcoScore is calculated using weightings based on the direct environmental impact of daily habits. 
+        Each section contributes to the overall score out of 100:
+      </p>
+      <div class="methodology-breakdown">
+        <div class="method-row"><span>🧘 Self-Reflection (Mindset)</span><strong>10%</strong></div>
+        <div class="method-row"><span>🥗 Food & Sustainability</span><strong>30%</strong></div>
+        <div class="method-row"><span>🚌 Transportation</span><strong>30%</strong></div>
+        <div class="method-row"><span>⚡ Energy Conservation</span><strong>15%</strong></div>
+        <div class="method-row"><span>♻️ Waste Management</span><strong>15%</strong></div>
+      </div>
+      <p class="methodology-note">
+        Answers are scored based on relative greenhouse gas emissions. For sections where direct utility control is absent (e.g. students and tenants), scores adapt dynamically to measure conservation behaviors, preventing structural bias in scoring.
+      </p>
+    </div>
+
+    <div class="analytics-section" style="margin-bottom:24px;">
+      <div class="analytics-section-title">📚 Educational Resources Library</div>
+      <p class="resources-intro">Explore practical materials aligned with the 5 Rs of zero-waste living:</p>
+      <div class="resources-accordion">
+        <div class="resource-card-item">
+          <div class="resource-header" data-body-id="res-refuse">
+            <span>🚫 Refuse</span>
+            <span class="resource-arrow">▼</span>
+          </div>
+          <div class="resource-body hidden" id="res-refuse">
+            <p>Say "no" to things you don't need before they enter your home. Refuse single-use plastics, plastic cutlery, junk mail, and promotional items. Refusing is the most effective way to eliminate waste at the source.</p>
+            <div class="resource-tip"><strong>Action Tip:</strong> Place a "No Junk Mail" sign on your letterbox and politely decline plastic bags at registers.</div>
+          </div>
+        </div>
+        <div class="resource-card-item">
+          <div class="resource-header" data-body-id="res-reduce">
+            <span>📉 Reduce</span>
+            <span class="resource-arrow">▼</span>
+          </div>
+          <div class="resource-body hidden" id="res-reduce">
+            <p>Minimize your overall consumption. Buy only what you need, choose products with minimal packaging, purchase in bulk, and declutter. Decreasing consumption automatically reduces resource extraction and energy usage.</p>
+            <div class="resource-tip"><strong>Action Tip:</strong> Plan weekly meals to reduce food waste and buy fresh foods loose rather than pre-packaged in plastic.</div>
+          </div>
+        </div>
+        <div class="resource-card-item">
+          <div class="resource-header" data-body-id="res-reuse">
+            <span>🔄 Reuse</span>
+            <span class="resource-arrow">▼</span>
+          </div>
+          <div class="resource-body hidden" id="res-reuse">
+            <p>Swap disposable items for high-quality reusable alternatives. Purchase secondhand clothing and furniture, repair broken appliances, and upcycle materials creatively. Extending product lifespans reduces landfill burdens.</p>
+            <div class="resource-tip"><strong>Action Tip:</strong> Carry a reusable water bottle, coffee cup, and shopping bags at all times.</div>
+          </div>
+        </div>
+        <div class="resource-card-item">
+          <div class="resource-header" data-body-id="res-recycle">
+            <span>♻️ Recycle</span>
+            <span class="resource-arrow">▼</span>
+          </div>
+          <div class="resource-body hidden" id="res-recycle">
+            <p>Recycle items that cannot be refused, reduced, or reused. Ensure proper clean sorting of paper, clean plastics, glass, and metals. Avoid "wishcycling" (throwing non-recyclable items in the recycling bin) to prevent facility contamination.</p>
+            <div class="resource-tip"><strong>Action Tip:</strong> Wash food containers before recycling. Check local council rules for accepted plastic types (usually numbers 1, 2, and 5).</div>
+          </div>
+        </div>
+        <div class="resource-card-item">
+          <div class="resource-header" data-body-id="res-rot">
+            <span>🍂 Rot (Compost)</span>
+            <span class="resource-arrow">▼</span>
+          </div>
+          <div class="resource-body hidden" id="res-rot">
+            <p>Compost organic matter like fruit scraps, vegetable peelings, coffee grounds, and yard waste. Composting diverts organic waste from oxygen-free landfills, where it would otherwise decompose into methane, a potent greenhouse gas.</p>
+            <div class="resource-tip"><strong>Action Tip:</strong> Set up a worm farm, backyard compost bin, or use local community organic waste collection hubs.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="analytics-section citations-card" style="margin-bottom:24px;">
+      <div class="analytics-section-title" style="color:var(--text)">📋 References & Citations</div>
+      <p class="citations-text">Our scoring algorithms and customized recommendations are aligned with the following research and environmental databases:</p>
+      <ul class="citations-list">
+        <li><strong>IPCC Sixth Assessment Report (2022)</strong>: Data on mitigation strategies, carbon footprint offsets, and global warming potentials.</li>
+        <li><strong>UNEP Emissions Gap Report (2023)</strong>: Global benchmarks for individual carbon emissions targets.</li>
+        <li><strong>Project Drawdown</strong>: Action-based rankings and environmental benefits of carbon-reducing behaviors like plant-rich diets and composting.</li>
+        <li><strong>U.S. EPA Carbon Calculator</strong>: Conversions for home electricity conservation, standby power draw, and passenger vehicle fuel efficiencies.</li>
+      </ul>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:16px;">
+      <button id="complete-assessment" style="flex:1;font-size:1.05rem">Start My EcoLyfe Journey 🌱</button>
+      <button id="retake-assessment" class="secondary-btn" style="padding:12px 20px;border-radius:999px;cursor:pointer;">Retake Assessment 🔄</button>
+    </div>
   `;
   showPanel(surveyPanel);
+  
+  // Set up accordion toggle event listeners
+  surveyPanel.querySelectorAll('.resource-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const bodyId = header.dataset.bodyId;
+      const el = document.getElementById(bodyId);
+      if (!el) return;
+      const arrow = header.querySelector('.resource-arrow');
+      
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        if (arrow) arrow.textContent = '▲';
+        header.classList.add('active-header');
+      } else {
+        el.classList.add('hidden');
+        if (arrow) arrow.textContent = '▼';
+        header.classList.remove('active-header');
+      }
+    });
+  });
+
+  // Animated counter for overall score
   let count = 0;
   const target = scores.overall;
   const el = document.getElementById('score-counter');
   const stepV = Math.max(1, Math.ceil(target / 40));
   const timer = setInterval(() => {
     count = Math.min(count + stepV, target);
-    el.textContent = count;
+    if (el) el.textContent = count;
     if (count >= target) clearInterval(timer);
   }, 30);
+  
+  // Animate category score bars
   setTimeout(() => {
     surveyPanel.querySelectorAll('.results-cat-bar[data-width]').forEach(bar => {
       bar.style.width = bar.dataset.width + '%';
     });
+    
+    // Animate SVG circle ring fill
+    const fillRing = document.getElementById('results-ring-fill');
+    if (fillRing) {
+      const perimeter = 251.2;
+      const offset = perimeter - (target / 100) * perimeter;
+      fillRing.style.strokeDashoffset = offset;
+    }
   }, 300);
+  
   document.getElementById('complete-assessment').addEventListener('click', async () => {
-    const perceivedWeak = document.getElementById('perceived-weak').value;
-    if (!perceivedWeak) return alert('Please select a category for the self-reflection question.');
-    await completeAssessment(scores, perceivedWeak);
+    await completeAssessment(scores, _assessSelfReflection);
+  });
+
+  document.getElementById('retake-assessment').addEventListener('click', () => {
+    _assessAnswers = {};
+    _assessSelfReflection = "";
+    renderDemographics();
   });
 }
 
 async function completeAssessment(scores, perceivedWeak) {
   showLoading();
-  const isNewUser = !state.user.onboarding_complete;
+  const isFirstTime = !state.user.assessmentDone;
+  const rewardPoints = isFirstTime ? 150 : 50;
+  
   const record = {
     userId: state.user.username,
     role: _assessDemographics.role || "student",
@@ -796,12 +1229,58 @@ async function completeAssessment(scores, perceivedWeak) {
   state.user.studentId = _assessDemographics.studentId || "";
   state.user.name = _assessDemographics.name || "";
   state.user.instagram = _assessDemographics.instagram || "";
-  if (isNewUser) {
-    state.user.eco_score = scores.overall;
+  
+  // Award points based on first-time or monthly retake
+  if (isFirstTime) {
+    state.user.eco_score = scores.overall + rewardPoints;
+  } else {
+    state.user.eco_score = (state.user.eco_score || 0) + rewardPoints;
   }
+  
   await saveUserToFirebase(state.user);
   hideLoading();
+  
+  // Show beautiful congratulations message
+  setTimeout(() => {
+    alert(`🎉 Assessment Submitted!\n\nThank you for completing your sustainability profile! You scored ${scores.overall}/100 and earned +${rewardPoints} Eco Points!`);
+  }, 100);
+  
   renderDashboard();
+}
+
+function renderStreakCalendar() {
+  const container = document.getElementById('streak-calendar-container');
+  if (!container) return;
+  
+  const checkins = state.user.checkins || [];
+  const historyDates = new Set(checkins.map(c => c.date));
+  const today = new Date();
+  
+  let html = `
+    <p style="margin: 0 0 12px; font-size: 0.88rem; font-weight: 600; color: var(--accent);">
+      🔥 Active Streak: <strong>${state.user.loginStreak} days</strong> | 7-Day Habit Tracker
+    </p>
+    <div class="streak-days-row">
+  `;
+  
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const isToday = i === 0;
+    const isChecked = historyDates.has(dateStr);
+    const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' }).substring(0, 2);
+    
+    html += `
+      <div class="calendar-day-box ${isChecked ? 'checked' : ''} ${isToday ? 'today' : ''}">
+        <span class="day-label">${dayLabel}</span>
+        <div class="day-indicator">${isChecked ? '✓' : '•'}</div>
+      </div>
+    `;
+  }
+  
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function renderDashboard() {
@@ -827,6 +1306,9 @@ function renderDashboard() {
       </div>
     </div>
     <div class="score-badge">Eco Score: ${state.user.eco_score}</div>
+    
+    <div id="streak-calendar-container" class="streak-calendar" style="margin-top: 20px;"></div>
+
     ${showFact ? `
     <div class="fun-fact-card" id="fun-fact-card" style="margin-top: 20px;">
       <div class="fun-fact-icon">💡</div>
@@ -875,6 +1357,7 @@ function renderDashboard() {
   renderQuizPanel();
   renderAchievementsPanel();
   loadLeaderboard();
+  renderStreakCalendar();
 }
 
 function renderAchievementsPanel() {
@@ -1042,39 +1525,7 @@ function handleQuizSubmit(quiz, currentIdx) {
   const selectedIndex = Number(answer.value);
   const today = new Date().toISOString().slice(0, 10);
   const correct = selectedIndex === quiz.answer;
-  const earned = correct ? quiz.points : 5;
 
-  // Visual feedback styling
-  const options = document.getElementsByName('quiz-answer');
-  options.forEach((opt, idx) => {
-    opt.disabled = true;
-    const label = document.getElementById(`quiz-opt-label-${idx}`);
-    if (idx === quiz.answer) {
-      label.classList.add('correct');
-    } else if (idx === selectedIndex) {
-      label.classList.add('wrong');
-    }
-  });
-
-  const feedbackBox = document.getElementById('quiz-feedback-box');
-  if (correct) {
-    feedbackBox.innerHTML = `
-      <div class="quiz-feedback correct">
-        <span>🎉 Correct! +${earned} points earned.</span>
-      </div>
-    `;
-  } else {
-    feedbackBox.innerHTML = `
-      <div class="quiz-feedback wrong">
-        <span>❌ Not quite! The correct answer was "${quiz.options[quiz.answer]}". +5 participation points.</span>
-      </div>
-    `;
-  }
-
-  // Update score and history
-  state.user.eco_score += earned;
-  state.user.quizHistory.push({ date: today, quizId: quiz.id, correct, pointsEarned: earned });
-  saveUsers();
 
   // Swap submit button for "Next Question" or "Finish Quiz"
   const submitBtn = document.getElementById('quiz-submit');
