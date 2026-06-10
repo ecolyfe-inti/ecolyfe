@@ -644,9 +644,9 @@ function renderDemographics() {
       <label for="demo-living">Living Arrangement & Utility Profile</label>
       <select id="demo-living">
         <option value="">Select your arrangement...</option>
-        <option value="Hostel">Hostel (Student - no utility control)</option>
-        <option value="Rental">Rental House / Apartment (Tenant - no utility control)</option>
-        <option value="Family Home">Family Home (Homeowner - with utility control)</option>
+        <option value="Hostel">Hostel</option>
+        <option value="Rental">Rental House / Apartment</option>
+        <option value="Family Home">Family Home</option>
       </select>
     </div>
     <button id="begin-assessment-btn" style="width:100%;margin-top:8px">Begin Assessment →</button>
@@ -1326,6 +1326,7 @@ async function completeAssessment(scores, perceivedWeak) {
   }, 100);
   
   renderDashboard();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderStreakCalendar() {
