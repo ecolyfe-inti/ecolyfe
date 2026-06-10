@@ -523,14 +523,16 @@ function getActiveQuestions(cat) {
         options: ['1 — No effort at all', '2', '3 — Sometimes try', '4', '5 — Very consistent'] }
     ];
   } else {
-    // Homeowner
+    // Homeowner / Family Home
     return [
-      { id: 'e_eff', text: 'What energy efficiency measures are active in your home (LED lights, smart thermostat, Energy-Star appliances)?', weight: 1.5,
-        options: ['None — older appliances and lighting', 'Partial LED lighting, standard appliances', 'Smart thermostat, full LED, or energy-star appliances', 'Solar panels installed and high-efficiency home profile'] },
-      { id: 'e_source', text: 'What is the primary source of your home heating / electricity?', weight: 1.5,
-        options: ['Standard utility grid (coal / natural gas)', 'Mixed grid electricity (some renewables)', 'Green power tariff (100% renewable plan) or rooftop solar'] },
-      { id: 'e_bill', text: 'How would you describe your average monthly household energy consumption / utility bills?', weight: 1.5,
-        options: ['High — high heating/cooling loads and high billing', 'Average — standard bills for a home of our size', 'Low — below average, we actively track power bills'] },
+      { id: 'e_eff', text: 'How often do you turn off lights and fans when leaving a room at home?', weight: 1.5,
+        options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+      { id: 'e_source', text: 'What do you usually do with plugged-in devices and chargers when not in use?', weight: 1.5,
+        options: ['Leave everything plugged in and switched on', 'Leave chargers plugged in but turn off devices', 'Unplug some chargers occasionally', 'Unplug most devices when not in use', 'Always unplug and switch off everything at the socket'] },
+      { id: 'e_bill', text: 'How would you describe your average monthly household energy consumption?', weight: 1.5,
+        options: ['Very high — well above average for our area', 'High — above average billing', 'Average — standard bills for a home of our size', 'Low — below average, we actively track usage', 'Very low — minimal consumption, we are highly efficient'] },
+      { id: 'e_ac', text: 'How often do you adjust air conditioning settings or use natural ventilation/fans instead of AC to save energy?', weight: 1.5,
+        options: ['Never — AC runs at maximum constantly', 'Rarely — only adjust when very hot or cold', 'Sometimes — I use fans or open windows occasionally', 'Often — I prefer natural ventilation most of the time', 'Always — I only use AC when absolutely necessary'] },
       { id: 'e3', text: 'Rate your overall effort to reduce electricity use in your daily routine. (1 = No effort, 5 = Very consistent)', weight: 1.0,
         options: ['1 — No effort at all', '2', '3 — Sometimes try', '4', '5 — Very consistent'] }
     ];
