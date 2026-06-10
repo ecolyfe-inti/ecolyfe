@@ -135,11 +135,11 @@ async function saveUserToFirebase(user) {
   localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(localUsers));
 }
 
-// Kept for backward compatibility but modified to load leaderboard instead of full users to remain fast
+// Fetches lightweight user data for leaderboard from /users
 async function fetchAllUsers() {
   if (db) {
     try {
-      const snap = await db.ref('leaderboard').once('value');
+      const snap = await db.ref('users').once('value');
       const arr = [];
       snap.forEach(child => { 
         arr.push({
@@ -154,7 +154,7 @@ async function fetchAllUsers() {
       localStorage.setItem('ecolyfeLocalLeaderboard', JSON.stringify(arr));
       return arr;
     } catch (error) {
-      console.warn("Firebase fetchAllUsers (leaderboard) failed. Loading local cache.", error);
+      console.warn("Firebase fetchAllUsers failed. Loading local cache.", error);
     }
   }
   const cached = localStorage.getItem('ecolyfeLocalLeaderboard');

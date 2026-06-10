@@ -277,37 +277,44 @@ function attachUserListener(username) {
   }
 }
 
-let leaderboardListener = null;
-function attachLeaderboardListener() {
-  if (leaderboardListener && db) {
-    try {
-      db.ref('leaderboard').off();
-    } catch (e) {}
-  }
-  if (db) {
-    try {
-      db.ref('leaderboard').orderByChild('eco_score').limitToLast(10).on('value', (snap) => {
-        const arr = [];
-        snap.forEach(child => {
-          arr.push(child.val());
-        });
-        arr.reverse();
-        state.leaderboard = arr;
-        localStorage.setItem('ecolyfeLocalLeaderboard', JSON.stringify(arr));
-        
-        if (!leaderboardPanel.hidden) {
-          loadLeaderboard();
-        }
-      });
-      leaderboardListener = true;
-    } catch (e) {
-      console.warn("Failed to attach leaderboard listener:", e);
-    }
-  } else {
-    const cached = localStorage.getItem('ecolyfeLocalLeaderboard');
-    state.leaderboard = cached ? JSON.parse(cached) : [];
-  }
-}
+let leaderboardListener = null;\r
+function attachLeaderboardListener() {\r
+  if (leaderboardListener && db) {\r
+    try {\r
+      db.ref('users').off('value', leaderboardListener);\r
+    } catch (e) {}\r
+  }\r
+  if (db) {\r
+    try {\r
+      leaderboardListener = db.ref('users').orderByChild('eco_score').limitToLast(10).on('value', (snap) => {\r
+        const arr = [];\r
+        snap.forEach(child => {\r
+          const v = child.val();\r
+          arr.push({\r
+            username: child.key,\r
+            name: v.name || child.key,\r
+            eco_score: v.eco_score || 0,\r
+            programme: v.programme || '',\r
+            yearOfStudy: v.yearOfStudy || ''\r
+          });\r
+        });\r
+        arr.reverse();\r
+        state.leaderboard = arr;\r
+        localStorage.setItem('ecolyfeLocalLeaderboard', JSON.stringify(arr));\r
+        \r
+        if (!leaderboardPanel.hidden) {\r
+          loadLeaderboard();\r
+        }\r
+      });\r
+    } catch (e) {\r
+      console.warn("Failed to attach leaderboard listener:", e);\r
+    }\r
+  } else {\r
+    const cached = localStorage.getItem('ecolyfeLocalLeaderboard');\r
+    state.leaderboard = cached ? JSON.parse(cached) : [];\r
+  }\r
+}\r
+
 
 async function handleLoginAction() {
   const username = document.getElementById('username').value.trim().toLowerCase();
