@@ -400,7 +400,7 @@ async function loadUserData(username) {
   attachUserListener(username);
   
   updateLoginStreak(user);
-  await saveUserToFirebase(user);
+  saveUserToFirebase(user); // fire-and-forget: don't block UI for login streak write
   
   if (user.assessmentDone) {
     const savedPanel = localStorage.getItem('ecolyfePanel') || 'dashboard';
@@ -2272,13 +2272,62 @@ function renderAnalyticsContent(rawRecords) {
 async function init() {
   showLoading();
 
-  if (db) {
+  // Safety timeout: guarantee loading overlay is dismissed within 3 seconds
+  const safetyTimer = setTimeout(() => { hideLoading(); }, 3000);
+
+  // ── Step 1: Instantly load cached data from localStorage (no network) ──
+  try { const c = localStorage.getItem('ecolyfeLocalLeaderboard'); if (c) state.users = JSON.parse(c); } catch (e) {}
+  try { const c = localStorage.getItem('ecolyfeLocalPosts'); if (c) state.posts = JSON.parse(c); } catch (e) {}
+  try { const c = localStorage.getItem('ecolyfeLocalAssessments'); if (c) state.assessments = JSON.parse(c); } catch (e) {}
+
+  // ── Step 2: Show UI immediately from cache ──
+  const savedUser = localStorage.getItem('ecolyfeUser');
+  if (savedUser) {
+    // Try to restore user profile from local cache (instant)
+    let cachedUser = null;
     try {
-      attachLeaderboardListener();
-    } catch (e) {
+      const raw = localStorage.getItem('ecolyfeLocalUsers');
+      if (raw) { const arr = JSON.parse(raw); cachedUser = arr.find(u => u.username === savedUser); }
+    } catch (e) {}
+
+    if (cachedUser) {
+      // Instant render from cache — no network wait
+      state.user = cachedUser;
+      if (cachedUser.assessmentDone) {
+        const panel = localStorage.getItem('ecolyfePanel') || 'dashboard';
+        if (panel === 'feed') renderFeedPanel();
+        else if (panel === 'analytics') renderAnalytics();
+        else renderDashboard();
+      } else {
+        renderDemographics();
+      }
+      clearTimeout(safetyTimer);
+      hideLoading();
+
+      // Background: refresh user from Firebase and sync login streak (non-blocking)
+      if (db) {
+        attachUserListener(savedUser);
+        fetchUserByUsername(savedUser).then(fresh => {
+          if (fresh) { updateLoginStreak(fresh); state.user = fresh; saveUserToFirebase(fresh); }
+        }).catch(() => {});
+      }
+    } else {
+      // No local cache for this user — must fetch from network
+      await loadUserData(savedUser);
+      clearTimeout(safetyTimer);
+      hideLoading();
+    }
+  } else {
+    renderLogin();
+    clearTimeout(safetyTimer);
+    hideLoading();
+  }
+
+  // ── Step 3: Attach real-time listeners in background (non-blocking) ──
+  if (db) {
+    try { attachLeaderboardListener(); } catch (e) {
       console.warn("Failed to attach leaderboard listener:", e);
     }
-
     try {
       db.ref('posts').orderByChild('timestamp').limitToLast(20).on('value', (snap) => {
         const arr = [];
@@ -2292,51 +2341,29 @@ async function init() {
         arr.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         state.posts = arr;
         localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(arr));
-        if (!feedPanel.hidden) {
-          renderFeedPanel();
-        }
+        if (!feedPanel.hidden) renderFeedPanel();
       });
     } catch (e) {
       console.warn("Failed to attach posts listener:", e);
     }
-
     try {
-      db.ref('assessments').on('value', (snap) => {
+      db.ref('assessments').orderByChild('timestamp').limitToLast(50).on('value', (snap) => {
         const arr = [];
         snap.forEach(child => { arr.push(child.val()); });
         state.assessments = arr;
         localStorage.setItem('ecolyfeLocalAssessments', JSON.stringify(arr));
-        if (!analyticsPanel.hidden) {
-          renderAnalyticsContent(arr);
-        }
+        if (!analyticsPanel.hidden) renderAnalyticsContent(arr);
       });
     } catch (e) {
       console.warn("Failed to attach assessments listener:", e);
     }
-  } else {
-    console.warn("Running EcoLyfe in Offline Mode (Firebase unavailable).");
   }
 
-  try {
-    state.users = await fetchAllUsers();
-  } catch (e) {
-    console.warn("fetchAllUsers failed:", e);
-  }
-
-  try {
-    state.posts = await fetchAllPosts();
-  } catch (e) {
-    console.warn("fetchAllPosts failed:", e);
-  }
-
-  const savedUser = localStorage.getItem('ecolyfeUser');
-  if (savedUser) {
-    loadUserData(savedUser);
-  } else {
-    renderLogin();
-  }
-
-  hideLoading();
+  // Background: refresh leaderboard and posts in parallel (non-blocking)
+  Promise.all([
+    fetchAllUsers().then(u => { state.users = u; }).catch(() => {}),
+    fetchAllPosts().then(p => { state.posts = p; if (!feedPanel.hidden) renderFeedPanel(); }).catch(() => {})
+  ]);
 }
 
 init();
