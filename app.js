@@ -250,6 +250,65 @@ function updateLoginStreak(user) {
   }
 }
 
+let activeUserListener = null;
+function attachUserListener(username) {
+  if (activeUserListener && db) {
+    try {
+      db.ref('users/' + activeUserListener).off();
+    } catch (e) {}
+  }
+  activeUserListener = username;
+  if (db) {
+    try {
+      db.ref('users/' + username).on('value', (snap) => {
+        if (snap.exists()) {
+          const updated = normalizeUser(username, snap.val());
+          state.user = updated;
+          
+          const scoreBadge = document.querySelector('.score-badge');
+          if (scoreBadge) {
+            scoreBadge.textContent = `Eco Score: ${updated.eco_score}`;
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to attach user real-time listener:", e);
+    }
+  }
+}
+
+let leaderboardListener = null;
+function attachLeaderboardListener() {
+  if (leaderboardListener && db) {
+    try {
+      db.ref('leaderboard').off();
+    } catch (e) {}
+  }
+  if (db) {
+    try {
+      db.ref('leaderboard').orderByChild('eco_score').limitToLast(10).on('value', (snap) => {
+        const arr = [];
+        snap.forEach(child => {
+          arr.push(child.val());
+        });
+        arr.reverse();
+        state.leaderboard = arr;
+        localStorage.setItem('ecolyfeLocalLeaderboard', JSON.stringify(arr));
+        
+        if (!leaderboardPanel.hidden) {
+          loadLeaderboard();
+        }
+      });
+      leaderboardListener = true;
+    } catch (e) {
+      console.warn("Failed to attach leaderboard listener:", e);
+    }
+  } else {
+    const cached = localStorage.getItem('ecolyfeLocalLeaderboard');
+    state.leaderboard = cached ? JSON.parse(cached) : [];
+  }
+}
+
 async function handleLoginAction() {
   const username = document.getElementById('username').value.trim().toLowerCase();
   const password = document.getElementById('password').value;
@@ -257,7 +316,7 @@ async function handleLoginAction() {
   if (!password) return alert('Please enter a password.');
 
   showLoading();
-  let user = state.users.find(entry => entry.username === username);
+  let user = await fetchUserByUsername(username);
   if (!user) {
     hideLoading();
     return alert('Account not found. Please create an account.');
@@ -276,6 +335,9 @@ async function handleLoginAction() {
 
   state.user = user;
   localStorage.setItem('ecolyfeUser', user.username);
+  
+  attachUserListener(user.username);
+  
   if (user.assessmentDone) {
     renderDashboard();
   } else {
@@ -293,13 +355,13 @@ async function handleRegister() {
   if (!password) return alert('Please enter a password.');
 
   showLoading();
-  let user = state.users.find(entry => entry.username === username);
-  if (user) {
+  const exists = await checkUsernameExists(username);
+  if (exists) {
     hideLoading();
     return alert('Username already exists. Please choose another or log in.');
   }
 
-  user = { 
+  const user = { 
     username, 
     password, 
     email, 
@@ -314,17 +376,19 @@ async function handleRegister() {
     loginStreak: 1, 
     lastLoginDate: new Date().toISOString().slice(0, 10) 
   };
-  state.users.push(user);
   await saveUserToFirebase(user);
 
   state.user = user;
   localStorage.setItem('ecolyfeUser', user.username);
+  
+  attachUserListener(user.username);
+  
   renderDemographics();
   hideLoading();
 }
 
-function loadUserData(username) {
-  const user = state.users.find(entry => entry.username === username);
+async function loadUserData(username) {
+  let user = await fetchUserByUsername(username);
   if (!user) {
     localStorage.removeItem('ecolyfeUser');
     localStorage.removeItem('ecolyfePanel');
@@ -332,8 +396,11 @@ function loadUserData(username) {
     return;
   }
   state.user = user;
+  
+  attachUserListener(username);
+  
   updateLoginStreak(user);
-  saveUserToFirebase(user);
+  await saveUserToFirebase(user);
   
   if (user.assessmentDone) {
     const savedPanel = localStorage.getItem('ecolyfePanel') || 'dashboard';
@@ -1623,14 +1690,12 @@ function loadLeaderboard() {
     <h2>Leaderboard</h2>
     <p>Top 10 EcoLyfe champions by Eco Score.</p>
     <div class="leaderboard">
-      ${state.users
-      .slice()
-      .sort((a, b) => b.eco_score - a.eco_score)
+      ${(state.leaderboard || [])
       .slice(0, 10)
       .map((entry, index) => `
           <div class="leaderboard-row">
             <span class="leaderboard-rank">${index + 1}</span>
-            <span>${entry.username}</span>
+            <span>${entry.name || entry.username}</span>
             <strong>${entry.eco_score}</strong>
           </div>
         `)
@@ -2209,34 +2274,13 @@ async function init() {
 
   if (db) {
     try {
-      // Real-time listeners
-      db.ref('users').on('value', (snap) => {
-        const arr = [];
-        snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
-        state.users = arr;
-        localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(arr));
-
-        if (state.user) {
-          const updated = arr.find(u => u.username === state.user.username);
-          if (updated) {
-            state.user = updated;
-          }
-        }
-
-        if (!leaderboardPanel.hidden || !dashboardPanel.hidden) {
-          loadLeaderboard();
-          const scoreBadge = document.querySelector('.score-badge');
-          if (scoreBadge && state.user) {
-            scoreBadge.textContent = `Eco Score: ${state.user.eco_score}`;
-          }
-        }
-      });
+      attachLeaderboardListener();
     } catch (e) {
-      console.warn("Failed to attach users listener:", e);
+      console.warn("Failed to attach leaderboard listener:", e);
     }
 
     try {
-      db.ref('posts').on('value', (snap) => {
+      db.ref('posts').orderByChild('timestamp').limitToLast(20).on('value', (snap) => {
         const arr = [];
         snap.forEach(child => {
           const p = child.val();
@@ -2245,6 +2289,7 @@ async function init() {
           p.comments = p.comments ? Object.values(p.comments) : [];
           arr.push(p);
         });
+        arr.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         state.posts = arr;
         localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(arr));
         if (!feedPanel.hidden) {

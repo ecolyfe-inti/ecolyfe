@@ -57,12 +57,65 @@ function normalizeUser(username, data) {
   };
 }
 
+async function checkUsernameExists(username) {
+  if (db) {
+    try {
+      const snap = await db.ref('users/' + username).once('value');
+      return snap.exists();
+    } catch (e) {
+      console.warn("Firebase checkUsernameExists failed:", e);
+    }
+  }
+  // Local fallback
+  const cached = localStorage.getItem('ecolyfeLocalUsers');
+  if (cached) {
+    try {
+      const users = JSON.parse(cached);
+      return users.some(u => u.username === username);
+    } catch (e) {}
+  }
+  return false;
+}
+
+async function fetchUserByUsername(username) {
+  if (db) {
+    try {
+      const snap = await db.ref('users/' + username).once('value');
+      if (snap.exists()) {
+        return normalizeUser(username, snap.val());
+      }
+    } catch (e) {
+      console.warn("Firebase fetchUserByUsername failed:", e);
+    }
+  }
+  // Local fallback
+  const cached = localStorage.getItem('ecolyfeLocalUsers');
+  if (cached) {
+    try {
+      const users = JSON.parse(cached);
+      const user = users.find(u => u.username === username);
+      if (user) return user;
+    } catch (e) {}
+  }
+  return null;
+}
+
 async function saveUserToFirebase(user) {
   const d = { ...user };
   delete d.username;
   if (db) {
     try {
       await db.ref('users/' + user.username).set(d);
+      
+      // Save to lightweight leaderboard node to prevent loading all full user profiles
+      await db.ref('leaderboard/' + user.username).set({
+        username: user.username,
+        name: user.name || user.username,
+        eco_score: user.eco_score || 0,
+        programme: user.programme || '',
+        yearOfStudy: user.yearOfStudy || '',
+        livingArrangement: user.livingArrangement || ''
+      });
     } catch (error) {
       console.warn("Firebase saveUserToFirebase failed:", error);
     }
@@ -82,26 +135,37 @@ async function saveUserToFirebase(user) {
   localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(localUsers));
 }
 
+// Kept for backward compatibility but modified to load leaderboard instead of full users to remain fast
 async function fetchAllUsers() {
   if (db) {
     try {
-      const snap = await db.ref('users').once('value');
+      const snap = await db.ref('leaderboard').once('value');
       const arr = [];
-      snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
-      localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(arr));
+      snap.forEach(child => { 
+        arr.push({
+          username: child.key,
+          name: child.val().name || child.key,
+          eco_score: child.val().eco_score || 0,
+          programme: child.val().programme || '',
+          yearOfStudy: child.val().yearOfStudy || '',
+          livingArrangement: child.val().livingArrangement || ''
+        });
+      });
+      localStorage.setItem('ecolyfeLocalLeaderboard', JSON.stringify(arr));
       return arr;
     } catch (error) {
-      console.warn("Firebase fetchAllUsers failed. Loading from local cache.", error);
+      console.warn("Firebase fetchAllUsers (leaderboard) failed. Loading local cache.", error);
     }
   }
-  const cached = localStorage.getItem('ecolyfeLocalUsers');
+  const cached = localStorage.getItem('ecolyfeLocalLeaderboard');
   return cached ? JSON.parse(cached) : [];
 }
 
 async function fetchAllPosts() {
   if (db) {
     try {
-      const snap = await db.ref('posts').orderByChild('timestamp').once('value');
+      // Query only the last 20 posts instead of all history
+      const snap = await db.ref('posts').orderByChild('timestamp').limitToLast(20).once('value');
       const arr = [];
       snap.forEach(child => {
         const p = child.val();
