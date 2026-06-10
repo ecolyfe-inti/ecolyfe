@@ -18,21 +18,21 @@ const state = {
     { id: 3, title: 'Energy Check', description: 'Track your energy use by switching off unused devices.', points: 14 }
   ],
   quizzes: [
-    { id: 1, question: 'Which item is best to reduce plastic waste?', options: ['Plastic water bottle', 'Reusable bottle', 'Single-use straw'], answer: 1, points: 15 },
-    { id: 2, question: 'What is the most eco-friendly way to get around town?', options: ['Driving alone', 'Biking or walking', 'Taking a taxi'], answer: 1, points: 18 },
-    { id: 3, question: 'Which action saves the most energy at home?', options: ['Turning off lights when not needed', 'Leaving devices plugged in', 'Using incandescent bulbs'], answer: 0, points: 12 },
-    { id: 4, question: 'Which of these has the highest carbon footprint per gram of protein?', options: ['Beef', 'Chicken', 'Beans'], answer: 0, points: 15 },
-    { id: 5, question: 'How long does it take for a standard plastic bag to decompose in a landfill?', options: ['10-20 years', '100-200 years', 'Up to 1,000 years'], answer: 2, points: 15 },
-    { id: 6, question: 'What is the primary gas produced by food waste decomposing in landfills?', options: ['Carbon Dioxide', 'Methane', 'Oxygen'], answer: 1, points: 15 },
-    { id: 7, question: 'Which type of light bulb is the most energy efficient?', options: ['Incandescent', 'Halogen', 'LED'], answer: 2, points: 12 },
-    { id: 8, question: 'What percentage of global greenhouse gas emissions come from food production?', options: ['Around 10%', 'Around 26%', 'Around 50%'], answer: 1, points: 15 },
-    { id: 9, question: 'How much water is saved by using a dishwasher instead of handwashing?', options: ['No difference', 'Up to 2 times more', 'Up to 5 times more'], answer: 2, points: 12 },
-    { id: 10, question: 'Which of the following is NOT a fossil fuel?', options: ['Coal', 'Natural Gas', 'Uranium'], answer: 2, points: 12 },
-    { id: 11, question: 'What is the most recycled material in the world by weight?', options: ['Steel', 'Plastic', 'Glass'], answer: 0, points: 15 },
-    { id: 12, question: 'How many trees are cut down annually to produce paper globally?', options: ['Around 4 billion', 'Around 100 million', 'Around 500,000'], answer: 0, points: 15 },
-    { id: 13, question: 'What is the "vampire draw" of appliances?', options: ['Power used by devices when in standby mode', 'Power surge when turning devices on', 'Power consumed during peak hours'], answer: 0, points: 12 },
-    { id: 14, question: 'Which action contributes most to marine microplastic pollution?', options: ['Washing synthetic clothes', 'Using paper straws', 'Throwing away metal cans'], answer: 0, points: 15 },
-    { id: 15, question: 'What is greywater?', options: ['Wastewater from toilets', 'Gently used water from sinks, showers, and baths', 'Highly toxic industrial water'], answer: 1, points: 15 }
+    { id: 1, question: 'Which item is best to reduce plastic waste?', options: ['Plastic water bottle', 'Reusable bottle', 'Single-use straw'], answer: 1, points: 15, explanation: 'Using a reusable bottle can save an average of 156 plastic bottles per person every year and significantly reduce single-use plastic waste.' },
+    { id: 2, question: 'What is the most eco-friendly way to get around town?', options: ['Driving alone', 'Biking or walking', 'Taking a taxi'], answer: 1, points: 18, explanation: 'Biking or walking produces zero emissions, improves personal health, and is the most sustainable way to travel short distances.' },
+    { id: 3, question: 'Which action saves the most energy at home?', options: ['Turning off lights when not needed', 'Leaving devices plugged in', 'Using incandescent bulbs'], answer: 0, points: 12, explanation: 'Turning off lights when leaving a room is a zero-cost habit that directly reduces electricity usage and extends bulb life.' },
+    { id: 4, question: 'Which of these has the highest carbon footprint per gram of protein?', options: ['Beef', 'Chicken', 'Beans'], answer: 0, points: 15, explanation: 'Beef production generates significantly higher greenhouse gas emissions per gram of protein compared to poultry and plant-based proteins due to methane from enteric fermentation and land use.' },
+    { id: 5, question: 'How long does it take for a standard plastic bag to decompose in a landfill?', options: ['10-20 years', '100-200 years', 'Up to 1,000 years'], answer: 2, points: 15, explanation: 'Plastic bags can take up to 1,000 years to decompose in a landfill. Instead of biodegarding, they break down into microplastics that pollute ecosystems.' },
+    { id: 6, question: 'What is the primary gas produced by food waste decomposing in landfills?', options: ['Carbon Dioxide', 'Methane', 'Oxygen'], answer: 1, points: 15, explanation: 'When food waste decomposes anaerobically (without oxygen) in landfills, it produces methane, a potent greenhouse gas with a global warming potential 28-36 times greater than CO2 over 100 years.' },
+    { id: 7, question: 'Which type of light bulb is the most energy efficient?', options: ['Incandescent', 'Halogen', 'LED'], answer: 2, points: 12, explanation: 'LED light bulbs consume up to 80% less energy and last up to 25 times longer than traditional incandescent bulbs.' },
+    { id: 8, question: 'What percentage of global greenhouse gas emissions come from food production?', options: ['Around 10%', 'Around 26%', 'Around 50%'], answer: 1, points: 15, explanation: 'According to major studies, food production accounts for approximately 26% of global greenhouse gas emissions, covering agriculture, land use, and distribution.' },
+    { id: 9, question: 'How much water is saved by using a dishwasher instead of handwashing?', options: ['No difference', 'Up to 2 times more', 'Up to 5 times more'], answer: 2, points: 12, explanation: 'Modern Energy Star certified dishwashers can use up to 5 times less water than washing dishes by hand under running water.' },
+    { id: 10, question: 'Which of the following is NOT a fossil fuel?', options: ['Coal', 'Natural Gas', 'Uranium'], answer: 2, points: 12, explanation: 'Uranium is a heavy metal used in nuclear power plants to generate electricity through fission, which does not release greenhouse gases, unlike burning fossil fuels like coal and gas.' },
+    { id: 11, question: 'What is the most recycled material in the world by weight?', options: ['Steel', 'Plastic', 'Glass'], answer: 0, points: 15, explanation: 'Steel is the most recycled material globally. It does not lose its structural properties when recycled, and more steel is recycled each year than plastic, paper, aluminum, and glass combined.' },
+    { id: 12, question: 'How many trees are cut down annually to produce paper globally?', options: ['Around 4 billion', 'Around 100 million', 'Around 500,000'], answer: 0, points: 15, explanation: 'Approximately 4 billion trees are cut down annually for paper production worldwide, contributing to deforestation and loss of biodiversity.' },
+    { id: 13, question: 'What is the "vampire draw" of appliances?', options: ['Power used by devices when in standby mode', 'Power surge when turning devices on', 'Power consumed during peak hours'], answer: 0, points: 12, explanation: 'Vampire draw (or standby power) is the electricity consumed by appliances and electronics while they are switched off or in standby mode, accounting for up to 10% of average household electricity use.' },
+    { id: 14, question: 'Which action contributes most to marine microplastic pollution?', options: ['Washing synthetic clothes', 'Using paper straws', 'Throwing away metal cans'], answer: 0, points: 15, explanation: 'Washing synthetic textiles (like polyester and nylon) releases hundreds of thousands of microfibers per wash cycle, which bypass wastewater treatment plants and end up in oceans.' },
+    { id: 15, question: 'What is greywater?', options: ['Wastewater from toilets', 'Gently used water from sinks, showers, and baths', 'Highly toxic industrial water'], answer: 1, points: 15, explanation: 'Greywater is wastewater generated from domestic activities such as laundry, dishwashing, and bathing, which can be recycled on-site for uses like landscape irrigation and toilet flushing.' }
   ],
   users: [],
   posts: [],
@@ -469,6 +469,11 @@ function getQuestionScore(qid, val) {
   return val;
 }
 
+function getQuestionMaxScore(q) {
+  if (q.id === 't2') return 4;
+  return q.options.length - 1;
+}
+
 const LEVEL_CONFIG = [
   { level: 'Eco Beginner',  min: 0,  max: 20,  color: '#ef4444', bg: '#fef2f2', emoji: '🌿' },
   { level: 'Eco Explorer',  min: 21, max: 40,  color: '#f97316', bg: '#fff7ed', emoji: '🌱' },
@@ -507,7 +512,7 @@ function calculateAssessmentScores() {
         const score = getQuestionScore(q.id, val);
         raw += score * q.weight;
       }
-      maxRaw += (q.options.length - 1) * q.weight;
+      maxRaw += getQuestionMaxScore(q) * q.weight;
     });
     catScores[cat.id] = maxRaw > 0 ? Math.min(100, Math.round((raw / maxRaw) * 100)) : 0;
     totalWeighted += catScores[cat.id] * cat.weight;
@@ -1219,7 +1224,7 @@ async function completeAssessment(scores, perceivedWeak) {
     perceivedWeakCategory: perceivedWeak,
     answers: { ..._assessAnswers }
   };
-  await db.ref('assessments').push(record);
+  await saveAssessment(record);
   state.user.assessmentDone = true;
   state.user.onboarding_complete = 1;
   state.user.role = _assessDemographics.role || "student";
@@ -1526,6 +1531,59 @@ function handleQuizSubmit(quiz, currentIdx) {
   const today = new Date().toISOString().slice(0, 10);
   const correct = selectedIndex === quiz.answer;
 
+  // Disable all inputs
+  document.querySelectorAll('input[name="quiz-answer"]').forEach(input => input.disabled = true);
+
+  // Highlight options
+  const correctLabel = document.getElementById(`quiz-opt-label-${quiz.answer}`);
+  if (correctLabel) correctLabel.classList.add('correct');
+
+  if (!correct) {
+    const selectedLabel = document.getElementById(`quiz-opt-label-${selectedIndex}`);
+    if (selectedLabel) selectedLabel.classList.add('wrong');
+  }
+
+  // Display feedback and scientific explanation card
+  const feedbackBox = document.getElementById('quiz-feedback-box');
+  if (feedbackBox) {
+    if (correct) {
+      feedbackBox.innerHTML = `
+        <div class="quiz-feedback correct">
+          <span>✔️</span>
+          <span>Correct! +${quiz.points} points earned.</span>
+        </div>
+        <div class="quiz-explanation">
+          <strong>Did you know?</strong> ${quiz.explanation || ''}
+        </div>
+      `;
+    } else {
+      feedbackBox.innerHTML = `
+        <div class="quiz-feedback wrong">
+          <span>❌</span>
+          <span>Incorrect. The correct answer was: ${quiz.options[quiz.answer]}</span>
+        </div>
+        <div class="quiz-explanation">
+          <strong>Did you know?</strong> ${quiz.explanation || ''}
+        </div>
+      `;
+    }
+  }
+
+  // Record history
+  state.user.quizHistory.push({
+    quizId: quiz.id,
+    date: today,
+    correct: correct,
+    pointsEarned: correct ? quiz.points : 0
+  });
+
+  if (correct) {
+    state.user.eco_score += quiz.points;
+  }
+
+  // Save updates and check achievements
+  saveUsers();
+  checkAchievements();
 
   // Swap submit button for "Next Question" or "Finish Quiz"
   const submitBtn = document.getElementById('quiz-submit');
@@ -1865,13 +1923,10 @@ async function handleCreatePost() {
     timestamp: new Date().toISOString()
   };
 
-  try {
-    await db.ref('posts').push(post);
-  } catch (err) {
-    console.error("Database error:", err);
-    alert("Failed to save post. Please check your connection.");
-    hideLoading();
-    return;
+  await savePost(post);
+  if (!db) {
+    state.posts.push(post);
+    renderFeedPanel();
   }
 
   if (earnedPoints) {
@@ -1889,11 +1944,16 @@ function handleLikePost(postId) {
   if (!post) return;
 
   const idx = post.likes.indexOf(state.user.username);
-  if (idx === -1) {
-    db.ref(`posts/${postId}/likes/${state.user.username}`).set(true);
+  const isLike = idx === -1;
+  likePostInFirebase(postId, state.user.username, isLike);
+
+  // Optimistic UI Update
+  if (isLike) {
+    post.likes.push(state.user.username);
   } else {
-    db.ref(`posts/${postId}/likes/${state.user.username}`).remove();
+    post.likes.splice(idx, 1);
   }
+  renderFeedPanel();
 }
 
 function handleDeletePost(postId) {
@@ -1901,19 +1961,32 @@ function handleDeletePost(postId) {
   if (!post || post.username !== state.user.username) return;
   if (!confirm('Delete this post?')) return;
 
-  db.ref(`posts/${postId}`).remove();
+  deletePostInFirebase(postId);
+
+  // Optimistic UI Update
+  const idx = state.posts.findIndex(p => p.id === postId);
+  if (idx !== -1) {
+    state.posts.splice(idx, 1);
+    renderFeedPanel();
+  }
 }
 
 function handleCommentPost(postId, text) {
   const post = state.posts.find(p => p.id === postId);
   if (!post) return;
 
-  const newCommentRef = db.ref(`posts/${postId}/comments`).push();
-  newCommentRef.set({
+  const comment = {
     username: state.user.username,
     text,
     timestamp: new Date().toISOString()
-  });
+  };
+
+  commentOnPostInFirebase(postId, comment);
+
+  // Optimistic UI Update
+  post.comments = post.comments || [];
+  post.comments.push(comment);
+  renderFeedPanel();
 
   // Re-open the comment section after re-render
   setTimeout(() => {
@@ -1945,9 +2018,7 @@ function renderAnalytics() {
   if (state.assessments && state.assessments.length > 0) {
     renderAnalyticsContent(state.assessments);
   } else {
-    db.ref('assessments').once('value', snap => {
-      const records = [];
-      snap.forEach(child => records.push(child.val()));
+    fetchAssessments().then(records => {
       state.assessments = records;
       renderAnalyticsContent(records);
     });
@@ -2136,54 +2207,82 @@ function renderAnalyticsContent(rawRecords) {
 async function init() {
   showLoading();
 
-  // Real-time listeners
-  db.ref('users').on('value', (snap) => {
-    const arr = [];
-    snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
-    state.users = arr;
+  if (db) {
+    try {
+      // Real-time listeners
+      db.ref('users').on('value', (snap) => {
+        const arr = [];
+        snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
+        state.users = arr;
+        localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(arr));
 
-    if (state.user) {
-      const updated = arr.find(u => u.username === state.user.username);
-      if (updated) {
-        state.user = updated;
-      }
+        if (state.user) {
+          const updated = arr.find(u => u.username === state.user.username);
+          if (updated) {
+            state.user = updated;
+          }
+        }
+
+        if (!leaderboardPanel.hidden || !dashboardPanel.hidden) {
+          loadLeaderboard();
+          const scoreBadge = document.querySelector('.score-badge');
+          if (scoreBadge && state.user) {
+            scoreBadge.textContent = `Eco Score: ${state.user.eco_score}`;
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to attach users listener:", e);
     }
 
-    if (!leaderboardPanel.hidden || !dashboardPanel.hidden) {
-      loadLeaderboard();
-      const scoreBadge = document.querySelector('.score-badge');
-      if (scoreBadge && state.user) {
-        scoreBadge.textContent = `Eco Score: ${state.user.eco_score}`;
-      }
+    try {
+      db.ref('posts').on('value', (snap) => {
+        const arr = [];
+        snap.forEach(child => {
+          const p = child.val();
+          p.id = child.key;
+          p.likes = p.likes ? Object.keys(p.likes) : [];
+          p.comments = p.comments ? Object.values(p.comments) : [];
+          arr.push(p);
+        });
+        state.posts = arr;
+        localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(arr));
+        if (!feedPanel.hidden) {
+          renderFeedPanel();
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to attach posts listener:", e);
     }
-  });
 
-  db.ref('posts').on('value', (snap) => {
-    const arr = [];
-    snap.forEach(child => {
-      const p = child.val();
-      p.id = child.key;
-      p.likes = p.likes ? Object.keys(p.likes) : [];
-      p.comments = p.comments ? Object.values(p.comments) : [];
-      arr.push(p);
-    });
-    state.posts = arr;
-    if (!feedPanel.hidden) {
-      renderFeedPanel();
+    try {
+      db.ref('assessments').on('value', (snap) => {
+        const arr = [];
+        snap.forEach(child => { arr.push(child.val()); });
+        state.assessments = arr;
+        localStorage.setItem('ecolyfeLocalAssessments', JSON.stringify(arr));
+        if (!analyticsPanel.hidden) {
+          renderAnalyticsContent(arr);
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to attach assessments listener:", e);
     }
-  });
+  } else {
+    console.warn("Running EcoLyfe in Offline Mode (Firebase unavailable).");
+  }
 
-  db.ref('assessments').on('value', (snap) => {
-    const arr = [];
-    snap.forEach(child => { arr.push(child.val()); });
-    state.assessments = arr;
-    if (!analyticsPanel.hidden) {
-      renderAnalyticsContent(arr);
-    }
-  });
+  try {
+    state.users = await fetchAllUsers();
+  } catch (e) {
+    console.warn("fetchAllUsers failed:", e);
+  }
 
-  await fetchAllUsers();
-  await fetchAllPosts();
+  try {
+    state.posts = await fetchAllPosts();
+  } catch (e) {
+    console.warn("fetchAllPosts failed:", e);
+  }
 
   const savedUser = localStorage.getItem('ecolyfeUser');
   if (savedUser) {

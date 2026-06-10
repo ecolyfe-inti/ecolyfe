@@ -9,9 +9,21 @@ const firebaseConfig = {
   appId: "1:832173313260:web:eb323d1377506aa589a9c9",
   measurementId: "G-FPE2FF51DC"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const fbStorage = firebase.storage();
+
+let db = null;
+let fbStorage = null;
+
+if (typeof firebase !== 'undefined') {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    fbStorage = firebase.storage();
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+  }
+} else {
+  console.warn("Firebase script not loaded. Running in local fallback mode.");
+}
 
 /* ─── Firebase Helpers ─── */
 function toArray(val) {
@@ -48,27 +60,64 @@ function normalizeUser(username, data) {
 async function saveUserToFirebase(user) {
   const d = { ...user };
   delete d.username;
-  await db.ref('users/' + user.username).set(d);
+  if (db) {
+    try {
+      await db.ref('users/' + user.username).set(d);
+    } catch (error) {
+      console.warn("Firebase saveUserToFirebase failed:", error);
+    }
+  }
+  // Always update local cache
+  let localUsers = [];
+  try {
+    const saved = localStorage.getItem('ecolyfeLocalUsers');
+    if (saved) localUsers = JSON.parse(saved);
+  } catch (e) {}
+  const idx = localUsers.findIndex(u => u.username === user.username);
+  if (idx !== -1) {
+    localUsers[idx] = user;
+  } else {
+    localUsers.push(user);
+  }
+  localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(localUsers));
 }
 
 async function fetchAllUsers() {
-  const snap = await db.ref('users').once('value');
-  const arr = [];
-  snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
-  return arr;
+  if (db) {
+    try {
+      const snap = await db.ref('users').once('value');
+      const arr = [];
+      snap.forEach(child => { arr.push(normalizeUser(child.key, child.val())); });
+      localStorage.setItem('ecolyfeLocalUsers', JSON.stringify(arr));
+      return arr;
+    } catch (error) {
+      console.warn("Firebase fetchAllUsers failed. Loading from local cache.", error);
+    }
+  }
+  const cached = localStorage.getItem('ecolyfeLocalUsers');
+  return cached ? JSON.parse(cached) : [];
 }
 
 async function fetchAllPosts() {
-  const snap = await db.ref('posts').orderByChild('timestamp').once('value');
-  const arr = [];
-  snap.forEach(child => {
-    const p = child.val();
-    p.id = child.key;
-    p.likes = p.likes ? Object.keys(p.likes) : [];
-    p.comments = p.comments ? Object.values(p.comments) : [];
-    arr.push(p);
-  });
-  return arr;
+  if (db) {
+    try {
+      const snap = await db.ref('posts').orderByChild('timestamp').once('value');
+      const arr = [];
+      snap.forEach(child => {
+        const p = child.val();
+        p.id = child.key;
+        p.likes = p.likes ? Object.keys(p.likes) : [];
+        p.comments = p.comments ? Object.values(p.comments) : [];
+        arr.push(p);
+      });
+      localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(arr));
+      return arr;
+    } catch (error) {
+      console.warn("Firebase fetchAllPosts failed. Loading from local cache.", error);
+    }
+  }
+  const cached = localStorage.getItem('ecolyfeLocalPosts');
+  return cached ? JSON.parse(cached) : [];
 }
 
 function showLoading() {
@@ -81,12 +130,140 @@ function hideLoading() {
 }
 
 async function saveAssessment(data) {
-  return db.ref('assessments').push(data);
+  if (db) {
+    try {
+      await db.ref('assessments').push(data);
+      return;
+    } catch (error) {
+      console.warn("Firebase saveAssessment failed:", error);
+    }
+  }
+  // Always update local cache
+  let localAssessments = [];
+  try {
+    const saved = localStorage.getItem('ecolyfeLocalAssessments');
+    if (saved) localAssessments = JSON.parse(saved);
+  } catch (e) {}
+  localAssessments.push(data);
+  localStorage.setItem('ecolyfeLocalAssessments', JSON.stringify(localAssessments));
 }
 
 async function fetchAssessments() {
-  const snap = await db.ref('assessments').once('value');
-  const arr = [];
-  snap.forEach(child => arr.push({ id: child.key, ...child.val() }));
-  return arr;
+  if (db) {
+    try {
+      const snap = await db.ref('assessments').once('value');
+      const arr = [];
+      snap.forEach(child => arr.push({ id: child.key, ...child.val() }));
+      localStorage.setItem('ecolyfeLocalAssessments', JSON.stringify(arr));
+      return arr;
+    } catch (error) {
+      console.warn("Firebase fetchAssessments failed. Loading from local cache.", error);
+    }
+  }
+  const cached = localStorage.getItem('ecolyfeLocalAssessments');
+  return cached ? JSON.parse(cached) : [];
+}
+
+async function savePost(post) {
+  if (db) {
+    try {
+      return await db.ref('posts').push(post);
+    } catch (error) {
+      console.warn("Firebase savePost failed:", error);
+    }
+  }
+  // Offline fallback
+  let localPosts = [];
+  const cached = localStorage.getItem('ecolyfeLocalPosts');
+  if (cached) {
+    try { localPosts = JSON.parse(cached); } catch (e) {}
+  }
+  post.id = 'local_' + Date.now();
+  localPosts.push(post);
+  localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(localPosts));
+  return post;
+}
+
+async function likePostInFirebase(postId, username, isLike) {
+  if (db) {
+    try {
+      const ref = db.ref(`posts/${postId}/likes/${username}`);
+      if (isLike) {
+        await ref.set(true);
+      } else {
+        await ref.remove();
+      }
+      return;
+    } catch (error) {
+      console.warn("Firebase likePost failed:", error);
+    }
+  }
+  // Offline fallback: update local cache
+  let localPosts = [];
+  const cached = localStorage.getItem('ecolyfeLocalPosts');
+  if (cached) {
+    try {
+      localPosts = JSON.parse(cached);
+      const post = localPosts.find(p => p.id === postId);
+      if (post) {
+        post.likes = post.likes || [];
+        const idx = post.likes.indexOf(username);
+        if (isLike && idx === -1) {
+          post.likes.push(username);
+        } else if (!isLike && idx !== -1) {
+          post.likes.splice(idx, 1);
+        }
+        localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(localPosts));
+      }
+    } catch (e) {}
+  }
+}
+
+async function deletePostInFirebase(postId) {
+  if (db) {
+    try {
+      await db.ref(`posts/${postId}`).remove();
+    } catch (error) {
+      console.warn("Firebase deletePost failed:", error);
+    }
+  }
+  // Offline fallback
+  let localPosts = [];
+  const cached = localStorage.getItem('ecolyfeLocalPosts');
+  if (cached) {
+    try {
+      localPosts = JSON.parse(cached);
+      const idx = localPosts.findIndex(p => p.id === postId);
+      if (idx !== -1) {
+        localPosts.splice(idx, 1);
+        localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(localPosts));
+      }
+    } catch (e) {}
+  }
+}
+
+async function commentOnPostInFirebase(postId, comment) {
+  if (db) {
+    try {
+      const newCommentRef = db.ref(`posts/${postId}/comments`).push();
+      await newCommentRef.set(comment);
+      return;
+    } catch (error) {
+      console.warn("Firebase commentPost failed:", error);
+    }
+  }
+  // Offline fallback
+  let localPosts = [];
+  const cached = localStorage.getItem('ecolyfeLocalPosts');
+  if (cached) {
+    try {
+      localPosts = JSON.parse(cached);
+      const post = localPosts.find(p => p.id === postId);
+      if (post) {
+        post.comments = post.comments || [];
+        post.comments.push(comment);
+        localStorage.setItem('ecolyfeLocalPosts', JSON.stringify(localPosts));
+      }
+    } catch (e) {}
+  }
 }
