@@ -639,7 +639,7 @@ function renderDemographics() {
       <input type="text" id="demo-name" placeholder="e.g. Alex Green" />
     </div>
     <div class="form-group">
-      <label for="demo-instagram">Instagram Username (Optional)</label>
+      <label for="demo-instagram">Instagram Username</label>
       <input type="text" id="demo-instagram" placeholder="e.g. @alex_green" />
     </div>
     <div class="form-group">
