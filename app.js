@@ -2109,7 +2109,7 @@ function renderAnalyticsContent(rawRecords) {
   // Filter to keep only the latest assessment per user
   const latestRecordsMap = new Map();
   rawRecords.forEach(r => {
-    const uid = r.userId || r.name || 'anonymous';
+    const uid = r.userId || r.id || r.name || ('record_' + Math.random());
     const existing = latestRecordsMap.get(uid);
     if (!existing || new Date(r.timestamp) > new Date(existing.timestamp)) {
       latestRecordsMap.set(uid, r);
@@ -2359,9 +2359,9 @@ async function init() {
       console.warn("Failed to attach posts listener:", e);
     }
     try {
-      db.ref('assessments').orderByChild('timestamp').limitToLast(50).on('value', (snap) => {
+      db.ref('assessments').on('value', (snap) => {
         const arr = [];
-        snap.forEach(child => { arr.push(child.val()); });
+        snap.forEach(child => { arr.push({ id: child.key, ...child.val() }); });
         state.assessments = arr;
         localStorage.setItem('ecolyfeLocalAssessments', JSON.stringify(arr));
         if (!analyticsPanel.hidden) renderAnalyticsContent(arr);
