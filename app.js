@@ -2091,15 +2091,14 @@ function renderAnalytics() {
   showPanel(analyticsPanel);
   document.getElementById('back-from-analytics').addEventListener('click', () => renderDashboard());
   
-  // Show cached data immediately if available
   if (state.assessments && state.assessments.length > 0) {
     renderAnalyticsContent(state.assessments);
+  } else {
+    fetchAssessments().then(records => {
+      state.assessments = records;
+      renderAnalyticsContent(records);
+    });
   }
-  // Always fetch fresh data from Firebase
-  fetchAssessments().then(records => {
-    state.assessments = records;
-    renderAnalyticsContent(records);
-  });
 }
 
 function renderAnalyticsContent(rawRecords) {
@@ -2109,7 +2108,7 @@ function renderAnalyticsContent(rawRecords) {
   // Filter to keep only the latest assessment per user
   const latestRecordsMap = new Map();
   rawRecords.forEach(r => {
-    const uid = r.userId || r.id || r.name || ('record_' + Math.random());
+    const uid = r.userId || r.name || 'anonymous';
     const existing = latestRecordsMap.get(uid);
     if (!existing || new Date(r.timestamp) > new Date(existing.timestamp)) {
       latestRecordsMap.set(uid, r);
@@ -2359,9 +2358,9 @@ async function init() {
       console.warn("Failed to attach posts listener:", e);
     }
     try {
-      db.ref('assessments').on('value', (snap) => {
+      db.ref('assessments').orderByChild('timestamp').limitToLast(50).on('value', (snap) => {
         const arr = [];
-        snap.forEach(child => { arr.push({ id: child.key, ...child.val() }); });
+        snap.forEach(child => { arr.push(child.val()); });
         state.assessments = arr;
         localStorage.setItem('ecolyfeLocalAssessments', JSON.stringify(arr));
         if (!analyticsPanel.hidden) renderAnalyticsContent(arr);

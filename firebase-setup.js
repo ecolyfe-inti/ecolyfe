@@ -197,11 +197,12 @@ async function saveAssessment(data) {
   if (db) {
     try {
       await db.ref('assessments').push(data);
+      return;
     } catch (error) {
       console.warn("Firebase saveAssessment failed:", error);
     }
   }
-  // Always update local cache (even after successful Firebase write)
+  // Always update local cache
   let localAssessments = [];
   try {
     const saved = localStorage.getItem('ecolyfeLocalAssessments');
