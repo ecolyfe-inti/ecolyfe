@@ -2091,14 +2091,15 @@ function renderAnalytics() {
   showPanel(analyticsPanel);
   document.getElementById('back-from-analytics').addEventListener('click', () => renderDashboard());
   
+  // Show cached data immediately if available
   if (state.assessments && state.assessments.length > 0) {
     renderAnalyticsContent(state.assessments);
-  } else {
-    fetchAssessments().then(records => {
-      state.assessments = records;
-      renderAnalyticsContent(records);
-    });
   }
+  // Always fetch fresh data from Firebase
+  fetchAssessments().then(records => {
+    state.assessments = records;
+    renderAnalyticsContent(records);
+  });
 }
 
 function renderAnalyticsContent(rawRecords) {
